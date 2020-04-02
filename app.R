@@ -12,6 +12,7 @@
 library(shiny)
 library(leaflet)
 library(dplyr)
+library(RColorBrewer)
 
 # --------------
 # Load Database
@@ -48,7 +49,21 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           label = h3("Select a taxonomic group:"),
           choices = as.list(
             c("all", unique(database$phylum))),
-          selected = 1)
+          selected = 1),
+        radioButtons(
+          "map_type",
+          label = h3("Map type:"),
+          choiceNames = list(
+            HTML("<p>Presence - Absence</p>"),
+            HTML("<p>Density (count m<sup>-2</sup>)</p>"),
+            HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>")
+          ),
+          choiceValues = list(
+            "pa",
+            "dens",
+            "biom"
+          ),
+          selected = "pa")
       ),
       mainPanel(
         leafletOutput("mymap", height = "800px")
@@ -93,8 +108,22 @@ server <- function(input, output) {
   # North Sea map
   # --------------
   output$mymap <- renderLeaflet({
-    my_subset <- subset_db(input$taxonomic_level, database)
-    create_map(my_subset, all_stations)
+    # Subset data
+    my_subset <- get_subset(
+      taxonomic_level = input$taxonomic_level, 
+      map_type = input$map_type,
+      database = database)
+    # Palette
+    pal <- colorNumeric(
+      palette = "Blues",
+      domain = c(
+        min(my_subset$Value, na.rm = T), 
+        max(my_subset$Value, na.rm = T)))
+    # Create map
+    create_map(
+      my_subset = my_subset, 
+      all_stations = all_stations,
+      pal = pal)
   })
 
   # ------------
