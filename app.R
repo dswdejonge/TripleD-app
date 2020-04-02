@@ -23,8 +23,12 @@ source("subset.R")
 # Define fixed parameters
 # -----------------------
 # North Sea boundaries lat and lon
-lats <- c(50, 62)
-lons <- c(-5, 10)
+#lats <- c(55, 59)
+#lons <- c(-1, 4)
+
+# All station points
+all_stations <- dplyr::select(database, Lat_DD, Lon_DD) %>%
+  distinct()
 
 # ---------------
 # User interface
@@ -90,7 +94,7 @@ server <- function(input, output) {
   # --------------
   output$mymap <- renderLeaflet({
     my_subset <- subset_db(input$taxonomic_level, database)
-    create_map(my_subset)
+    create_map(my_subset, all_stations)
   })
 
   # ------------
