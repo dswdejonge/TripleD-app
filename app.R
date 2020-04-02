@@ -11,19 +11,14 @@
 # install.packages("leaflet")
 library(shiny)
 library(leaflet)
-#library(TripleD)
-#library(ggplot2)
-#library(mapdata)
-#library(mapproj)
-#library(dplyr)
-#library(png)
-#library(grid)
+library(dplyr)
 
 # --------------
 # Load Database
 # --------------
-load("2020-04-02_database.rda")
-
+load("data/2020-04-02_database.rda")
+source("map.R")
+source("subset.R")
 # -----------------------
 # Define fixed parameters
 # -----------------------
@@ -52,7 +47,7 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           selected = 1)
       ),
       mainPanel(
-        leafletOutput("North_Sea_map", height = "800px")
+        leafletOutput("mymap", height = "800px")
       )
     )
   ),
@@ -93,10 +88,9 @@ server <- function(input, output) {
   # --------------
   # North Sea map
   # --------------
-  output$North_Sea_map <- renderLeaflet({
-    leaflet() %>%
-      addTiles() %>%  # Add default OpenStreetMap map tiles
-      addMarkers(lng=174.768, lat=-36.852, popup="The birthplace of R")
+  output$mymap <- renderLeaflet({
+    my_subset <- subset_db(input$taxonomic_level, database)
+    create_map(my_subset)
   })
 
   # ------------
