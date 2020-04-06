@@ -65,12 +65,16 @@ ui <- navbarPage( # page with tabs to navigate to different pages
             HTML("<p>Density (count m<sup>-2</sup>)</p>"),
             HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>")
           ),
-          choiceValues = list(
-            "pa",
-            "dens",
-            "biom"
-          ),
-          selected = "pa")
+          choiceValues = list("pa","dens","biom"),
+          selected = "pa"),
+        dateRangeInput(
+          "dates_input",
+          label = h3("Show data between:"),
+          start = min(database$Date),
+          end = max(database$Date),
+          min = min(database$Date),
+          max = max(database$Date)
+        )
       ),
       mainPanel(
         leafletOutput("mymap", height = "800px")
