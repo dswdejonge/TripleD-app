@@ -46,10 +46,17 @@ ui <- navbarPage( # page with tabs to navigate to different pages
       sidebarPanel(
         selectInput(
           "taxonomic_level",
-          label = h3("Select a taxonomic group:"),
-          choices = as.list(
-            c("all", unique(database$phylum))),
+          label = h3("Select a taxonomic level:"),
+          choices = as.list(c("all_data", "phylum", "class", "order", 
+                              "family", "genus", "species")),
+          #choices = as.list(c("phylum", "class", "order","family", "genus", "species")),
           selected = 1),
+        selectInput(
+          "taxon",
+          label = h3("Select a taxon:"),
+          choices = NULL,
+          selected = 1
+        ),
         radioButtons(
           "map_type",
           label = h3("Map type:"),
@@ -102,15 +109,35 @@ ui <- navbarPage( # page with tabs to navigate to different pages
 # ---------------------------------------
 # Server, i..e R-code that renders output
 # ---------------------------------------
-server <- function(input, output) {
+server <- function(input, output, session) {
 
   # --------------
   # North Sea map
   # --------------
+  # Update selection box based on taxnomic level
+  observeEvent(input$taxonomic_level,{
+    if(input$taxonomic_level == "all_data"){
+      my_choices <- as.list(NA)
+    }else if(input$taxonomic_level == "species"){
+      temp <- database %>%
+        dplyr::filter(rank == "Species") %>%
+        dplyr::pull(valid_name)
+      my_choices <- as.list(sort(unique(temp)))
+    }else{
+      my_choices <- as.list(sort(unique(dplyr::pull(database,input$taxonomic_level))))
+    }
+    updateSelectInput(
+      session,
+      inputId = "taxon",
+      choices = my_choices
+    )
+  })
+  
   output$mymap <- renderLeaflet({
     # Subset data
     my_subset <- get_subset(
-      taxonomic_level = input$taxonomic_level, 
+      taxonomic_level = input$taxonomic_level,
+      taxon = input$taxon, 
       map_type = input$map_type,
       database = database)
     # Palette
