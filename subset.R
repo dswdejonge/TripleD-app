@@ -1,5 +1,5 @@
 # Subset data based on input
-get_subset <- function(taxonomic_level, taxon, map_type, database){
+get_subset <- function(taxonomic_level, taxon, map_type, database, dates_input){
   # Filter on taxonomic level
   if(taxonomic_level == "all_data"){
     my_subset <- database
@@ -11,6 +11,10 @@ get_subset <- function(taxonomic_level, taxon, map_type, database){
     my_subset <- database %>%
       dplyr::filter(!!sym(taxonomic_level) == taxon)
   }
+  
+  # Get data within date range
+  my_subset <- my_subset %>%
+    dplyr::filter(Date >= dates_input[1] & Date <= dates_input[2])
   
   # Get data based on map_type
   if(map_type == "pa"){

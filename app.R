@@ -118,7 +118,7 @@ server <- function(input, output, session) {
   # --------------
   # North Sea map
   # --------------
-  # Update selection box based on taxnomic level
+  # Update selection box based on taxonomic level
   observeEvent(input$taxonomic_level,{
     if(input$taxonomic_level == "all_data"){
       my_choices <- as.list(NA)
@@ -143,7 +143,8 @@ server <- function(input, output, session) {
       taxonomic_level = input$taxonomic_level,
       taxon = input$taxon, 
       map_type = input$map_type,
-      database = database)
+      database = database,
+      dates_input = input$dates_input)
     # Palette
     my_pal <- colorNumeric(
       palette = RColorBrewer::brewer.pal(11, "Spectral"), # Spectral palette
