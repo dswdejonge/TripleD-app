@@ -21,7 +21,9 @@ get_subset <- function(taxonomic_level, taxon, map_type, database, dates_input){
     my_subset <- my_subset %>%
       dplyr::select(StationID, Lat_DD, Lon_DD) %>%
       dplyr::distinct()
-    my_subset$Value <- 1
+    if(nrow(my_subset) > 0){
+      my_subset$Value <- 1
+    }
   }else if(map_type == "dens"){
     my_subset <-  my_subset %>%
       dplyr::select(StationID, Density_nr_per_m2, Lat_DD, Lon_DD) %>%

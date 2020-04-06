@@ -145,14 +145,6 @@ server <- function(input, output, session) {
       map_type = input$map_type,
       database = database,
       dates_input = input$dates_input)
-    # Palette
-    my_pal <- colorNumeric(
-      palette = RColorBrewer::brewer.pal(11, "Spectral"), # Spectral palette
-      domain = c(
-        min(my_subset$Value, na.rm = T), # Minimum range
-        max(my_subset$Value, na.rm = T)), # Maximum range
-      reverse = T # Use the scale in reverse (blue is low, red is high)
-      )
     # Create map
     create_map(
       my_subset = my_subset, 

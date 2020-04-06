@@ -8,19 +8,37 @@ create_map <- function(my_subset, all_stations, my_pal, map_type){
     map_title <- HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>") 
   }
   
-  mymap <- leaflet() %>%
-    #fitBounds(lng1 = lons[1], lng2 = lons[2], lat1 = lats[1], lat2 = lats[2]) %>%
-    addProviderTiles(providers$Esri.OceanBasemap) %>%
-    #addTiles() %>%  # Add default OpenStreetMap map tiles
-    addCircleMarkers(
-      lng=my_subset$Lon_DD, 
-      lat=my_subset$Lat_DD,
-      #color = "red",
-      color = my_pal(my_subset$Value),
-      radius = 15,
-      fillOpacity = 0.5,
-      stroke = FALSE
-    ) %>%
+  # Base map
+  my_map <- leaflet() %>%
+    addProviderTiles(providers$Esri.OceanBasemap)
+  # Add data markers and legend if there is data
+  if(nrow(my_subset) > 0){
+    # Palette
+    my_pal <- colorNumeric(
+      palette = RColorBrewer::brewer.pal(11, "Spectral"), # Spectral palette
+      domain = c(
+        min(my_subset$Value, na.rm = T), # Minimum range
+        max(my_subset$Value, na.rm = T)), # Maximum range
+      reverse = T # Use the scale in reverse (blue is low, red is high)
+    )
+    # Add markers
+    my_map <- my_map %>%
+      addCircleMarkers(
+        lng = my_subset$Lon_DD, 
+        lat = my_subset$Lat_DD,
+        color = my_pal(my_subset$Value),
+        radius = 15,
+        fillOpacity = 0.5,
+        stroke = FALSE
+      ) %>%
+      addLegend("bottomright",
+                pal = my_pal,
+                values = my_subset$Value,
+                title = map_title,
+                opacity = 1)
+  }
+  # Add station markers
+  my_map <- my_map %>% 
     addCircleMarkers(
       lng = all_stations$Lon_DD,
       lat = all_stations$Lat_DD,
@@ -28,12 +46,7 @@ create_map <- function(my_subset, all_stations, my_pal, map_type){
       fillOpacity = 1.0,
       color = "black",
       stroke = FALSE
-    ) %>%
-    addLegend("bottomright",
-              pal = my_pal,
-              values = my_subset$Value,
-              title = map_title,
-              opacity = 1)
+    )
   
-  return(mymap)
+  return(my_map)
 }
