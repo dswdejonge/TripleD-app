@@ -71,7 +71,7 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           max = max(database$Date)
         ),
         selectInput(
-          "CruiseID",
+          "cruise_id",
           label = p("Select a CruiseID:"),
           choices = c("all",sort(unique(as.character(dplyr::pull(database,CruiseID))))),
           selected = 1
@@ -149,7 +149,8 @@ server <- function(input, output, session) {
       taxon = input$taxon, 
       map_type = input$map_type,
       database = database,
-      dates_input = input$dates_input)
+      dates_input = input$dates_input,
+      cruise_id = input$cruise_id)
     # Create map
     create_map(
       my_subset = my_subset, 

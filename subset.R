@@ -1,5 +1,5 @@
 # Subset data based on input
-get_subset <- function(taxonomic_level, taxon, map_type, database, dates_input){
+get_subset <- function(taxonomic_level, taxon, map_type, database, dates_input, cruise_id){
   # Filter on taxonomic level
   if(taxonomic_level == "all_data"){
     my_subset <- database
@@ -16,7 +16,12 @@ get_subset <- function(taxonomic_level, taxon, map_type, database, dates_input){
   my_subset <- my_subset %>%
     dplyr::filter(Date >= dates_input[1] & Date <= dates_input[2])
   
-  # Get data based on map_type
+  # Filter based on CruiseID
+  if(cruise_id != "all"){
+    my_subset <- dplyr::filter(my_subset, CruiseID == cruise_id)
+  }
+  
+  # Get data based on map_type (do last, because info lost with select)
   if(map_type == "pa"){
     my_subset <- my_subset %>%
       dplyr::select(StationID, Lat_DD, Lon_DD) %>%
