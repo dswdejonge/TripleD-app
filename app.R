@@ -22,10 +22,6 @@ load("data/2020-04-02_database.rda")
 load("data/contours.rda")
 source("map.R")
 source("subset.R")
-# -----------------------
-# Define fixed parameters
-# -----------------------
-
 
 # ---------------
 # User interface
@@ -76,6 +72,11 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           label = p("Select a CruiseID:"),
           choices = c("all",sort(unique(as.character(dplyr::pull(database,CruiseID))))),
           selected = 1
+        ),
+        checkboxInput(
+          "show_bathy",
+          label = p("Show bathymetry"),
+          value = FALSE
         )
       ),
       mainPanel(
@@ -157,7 +158,8 @@ server <- function(input, output, session) {
       my_subset = my_subset, 
       all_stations = all_stations,
       my_pal = my_pal,
-      map_type = input$map_type)
+      map_type = input$map_type,
+      show_bathy = input$show_bathy)
   })
 
   # ------------
