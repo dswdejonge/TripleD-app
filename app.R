@@ -20,6 +20,7 @@ library(htmltools) # for HTLMescape in popups
 # --------------
 load("data/2020-04-02_database.rda")
 load("data/contours.rda")
+load("data/regions_of_interest.rda")
 source("map.R")
 source("subset.R")
 
@@ -36,10 +37,9 @@ ui <- navbarPage( # page with tabs to navigate to different pages
     "Map",
     sidebarLayout(
       sidebarPanel(
-        h3("Map layout"),
         radioButtons(
           "map_type",
-          label = p("Data type:"),
+          label = h3("Map type:"),
           choiceNames = list(
             HTML("<p>Presence - Absence</p>"),
             HTML("<p>Density (count m<sup>-2</sup>)</p>"),
@@ -47,9 +47,15 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           ),
           choiceValues = list("pa","dens","biom"),
           selected = "pa"),
+        h3("Additional layers:"),
         checkboxInput(
           "show_bathy",
           label = p("Show bathymetry"),
+          value = FALSE
+        ),
+        checkboxInput(
+          "show_roi",
+          label = p("Show regions of interest"),
           value = FALSE
         ),
         h3("Filter data"),
@@ -173,7 +179,8 @@ server <- function(input, output, session) {
       all_stations = all_stations,
       my_pal = my_pal,
       map_type = input$map_type,
-      show_bathy = input$show_bathy)
+      show_bathy = input$show_bathy,
+      show_roi = input$show_roi)
   })
 
   # ------------

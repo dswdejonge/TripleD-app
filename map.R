@@ -1,5 +1,7 @@
-create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy){
+create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy, show_roi){
+  ############
   # Map title
+  ############
   if(map_type == "pa"){
     map_title <- HTML("<p>Presence - Absence</p>")
   }else if(map_type == "dens"){
@@ -8,8 +10,17 @@ create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy){
     map_title <- HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>") 
   }
   
-  # Bathymetry palette
+  #############
+  # Add layers
+  #############
+  # Base layer
+  my_map <- leaflet() %>%
+    addProviderTiles(providers$Esri.OceanBasemap) %>%
+    addScaleBar(position = "bottomleft")
+  
+  # Bathymetry
   if(show_bathy){
+    # Bathymetry palette
     bathy_pal <- colorNumeric(
       palette = RColorBrewer::brewer.pal(9, "Blues"),
       domain = c(
@@ -17,15 +28,7 @@ create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy){
         max(my_contours_df$depth, na.rm = T)), # Maximum range
       reverse = F # Use the scale in reverse (dark blue is deeper)
     ) 
-  }
-  
-  my_map <- leaflet() %>%
-    # Esri ocean base map
-    addProviderTiles(providers$Esri.OceanBasemap) %>%
-    addScaleBar(position = "bottomleft")
-  
-  # Add extra bathymetry
-  if(show_bathy){
+    # Add to map
     my_map <- my_map %>%
       addPolylines(
         data = my_contours_df, # SpatialLinesDataFrame object from sp package
@@ -34,7 +37,22 @@ create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy){
         opacity = 0.8,
         label = paste0(my_contours_df$depth, " m."))
   }
-    
+  
+  # Regions of interest
+  if(show_roi){
+    my_map <- my_map %>%
+      addPolygons(
+        data = regions_of_interest,
+        popup = htmltools::htmlEscape(paste0(
+          regions_of_interest$name, 
+          " (", regions_of_interest$type,"). ",
+          "Area: ", regions_of_interest$area_ha, " ha."))
+      )
+  }
+  
+  ###########
+  # Add data
+  ###########
   # Add data markers and legend if there is data
   if(nrow(my_subset) > 0){
     # Palette

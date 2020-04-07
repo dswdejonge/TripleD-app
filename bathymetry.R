@@ -1,6 +1,6 @@
 library(contoureR)
 library(sp)
-# load bathymetry
+load("bathymetry.rda")
 
 # Define depths
 my_depths <- seq(from = -10, to = -200, by = -20)
