@@ -36,6 +36,23 @@ ui <- navbarPage( # page with tabs to navigate to different pages
     "Map",
     sidebarLayout(
       sidebarPanel(
+        h3("Map layout"),
+        radioButtons(
+          "map_type",
+          label = p("Data type:"),
+          choiceNames = list(
+            HTML("<p>Presence - Absence</p>"),
+            HTML("<p>Density (count m<sup>-2</sup>)</p>"),
+            HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>")
+          ),
+          choiceValues = list("pa","dens","biom"),
+          selected = "pa"),
+        checkboxInput(
+          "show_bathy",
+          label = p("Show bathymetry"),
+          value = FALSE
+        ),
+        h3("Filter data"),
         selectInput(
           "taxonomic_level",
           label = p("Select a taxonomic level:"),
@@ -49,34 +66,31 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           choices = NULL,
           selected = 1
         ),
-        radioButtons(
-          "map_type",
-          label = p("Map type:"),
-          choiceNames = list(
-            HTML("<p>Presence - Absence</p>"),
-            HTML("<p>Density (count m<sup>-2</sup>)</p>"),
-            HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>")
-          ),
-          choiceValues = list("pa","dens","biom"),
-          selected = "pa"),
         dateRangeInput(
           "dates_input",
-          label = p("Show data between:"),
+          label = p("Show data within time range:"),
           start = min(database$Date),
           end = max(database$Date),
           min = min(database$Date),
           max = max(database$Date)
+        ),
+        sliderInput(
+          "depth_range",
+          label = p("Show data within depth range:"),
+          min = floor(min(database$Water_depth_m)),
+          max = ceiling(max(database$Water_depth_m)),
+          value = c(
+            floor(min(database$Water_depth_m)),
+            ceiling(max(database$Water_depth_m))),
+          step = 1,
+          round = TRUE,
+          dragRange = TRUE
         ),
         selectInput(
           "cruise_id",
           label = p("Select a CruiseID:"),
           choices = c("all",sort(unique(as.character(dplyr::pull(database,CruiseID))))),
           selected = 1
-        ),
-        checkboxInput(
-          "show_bathy",
-          label = p("Show bathymetry"),
-          value = FALSE
         )
       ),
       mainPanel(
