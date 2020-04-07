@@ -45,7 +45,10 @@ create_map <- function(my_subset, all_stations, my_pal, map_type){
       radius = 3,
       fillOpacity = 1.0,
       color = "black",
-      stroke = FALSE
+      stroke = FALSE,
+      popup = htmltools::htmlEscape(
+        paste0("StationID: ",all_stations$StationID,
+               "\n Date: ",  all_stations$Date))
     )
   
   return(my_map)

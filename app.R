@@ -10,9 +10,10 @@
 # install.packages("shiny)
 # install.packages("leaflet")
 library(shiny)
-library(leaflet)
-library(dplyr)
-library(RColorBrewer)
+library(leaflet) # for interactive map
+library(dplyr) # for data manipulation
+library(RColorBrewer) # for palette map
+library(htmltools) # for HTLMescape in popups
 
 # --------------
 # Load Database
@@ -23,13 +24,7 @@ source("subset.R")
 # -----------------------
 # Define fixed parameters
 # -----------------------
-# North Sea boundaries lat and lon
-#lats <- c(55, 59)
-#lons <- c(-1, 4)
 
-# All station points
-all_stations <- dplyr::select(database, Lat_DD, Lon_DD) %>%
-  distinct()
 
 # ---------------
 # User interface
@@ -137,7 +132,11 @@ server <- function(input, output, session) {
     )
   })
   
+  # Create map
   output$mymap <- renderLeaflet({
+    # Get all station points (black markers)
+    all_stations <- dplyr::select(database, StationID, Date, Lat_DD, Lon_DD) %>%
+      distinct()
     # Subset data
     my_subset <- get_subset(
       taxonomic_level = input$taxonomic_level,
