@@ -21,7 +21,8 @@ create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy){
   
   my_map <- leaflet() %>%
     # Esri ocean base map
-    addProviderTiles(providers$Esri.OceanBasemap)
+    addProviderTiles(providers$Esri.OceanBasemap) %>%
+    addScaleBar(position = "bottomleft")
   
   # Add extra bathymetry
   if(show_bathy){
