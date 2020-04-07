@@ -30,7 +30,8 @@ create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy){
         data = my_contours_df, # SpatialLinesDataFrame object from sp package
         color = bathy_pal(my_contours_df$depth),
         weight = 2,
-        opacity = 0.8)
+        opacity = 0.8,
+        label = paste0(my_contours_df$depth, " m."))
   }
     
   # Add data markers and legend if there is data
