@@ -58,7 +58,6 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           label = p("Select a taxonomic level:"),
           choices = as.list(c("all_data", "phylum", "class", "order", 
                               "family", "genus", "species")),
-          #choices = as.list(c("phylum", "class", "order","family", "genus", "species")),
           selected = 1),
         selectInput(
           "taxon",
@@ -161,12 +160,13 @@ server <- function(input, output, session) {
       distinct()
     # Subset data
     my_subset <- get_subset(
+      database = database,
       taxonomic_level = input$taxonomic_level,
       taxon = input$taxon, 
       map_type = input$map_type,
-      database = database,
       dates_input = input$dates_input,
-      cruise_id = input$cruise_id)
+      cruise_id = input$cruise_id,
+      depth_range = input$depth_range)
     # Create map
     create_map(
       my_subset = my_subset, 

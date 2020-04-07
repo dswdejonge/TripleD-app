@@ -1,5 +1,6 @@
 # Subset data based on input
-get_subset <- function(taxonomic_level, taxon, map_type, database, dates_input, cruise_id){
+get_subset <- function(taxonomic_level, taxon, map_type, database, 
+                       dates_input, cruise_id, depth_range){
   # Filter on taxonomic level
   if(taxonomic_level == "all_data"){
     my_subset <- database
@@ -12,9 +13,12 @@ get_subset <- function(taxonomic_level, taxon, map_type, database, dates_input, 
       dplyr::filter(!!sym(taxonomic_level) == taxon)
   }
   
-  # Get data within date range
+  
   my_subset <- my_subset %>%
-    dplyr::filter(Date >= dates_input[1] & Date <= dates_input[2])
+    # Get data within date range
+    dplyr::filter(Date >= dates_input[1] & Date <= dates_input[2]) %>%
+    # Get data within depth range
+    dplyr::filter(Water_depth_m >= depth_range[1] & Water_depth_m <= depth_range[2])
   
   # Filter based on CruiseID
   if(cruise_id != "all"){
