@@ -8,9 +8,25 @@ create_map <- function(my_subset, all_stations, my_pal, map_type){
     map_title <- HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>") 
   }
   
-  # Base map
+  # Bathymetry palette
+  bathy_pal <- colorNumeric(
+    palette = RColorBrewer::brewer.pal(9, "Blues"),
+    domain = c(
+      min(my_contours_df$depth, na.rm = T), # Minimum range
+      max(my_contours_df$depth, na.rm = T)), # Maximum range
+    reverse = F # Use the scale in reverse (dark blue is deeper)
+  )
+  
   my_map <- leaflet() %>%
-    addProviderTiles(providers$Esri.OceanBasemap)
+    # Esri ocean base map
+    addProviderTiles(providers$Esri.OceanBasemap) %>%
+    # Add extra bathymetry
+    addPolylines(
+      data = my_contours_df, # SpatialLinesDataFrame object from sp package
+      #color = "grey",
+      color = bathy_pal(my_contours_df$depth),
+      weight = 2,
+      opacity = 0.8)
   # Add data markers and legend if there is data
   if(nrow(my_subset) > 0){
     # Palette

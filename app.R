@@ -19,6 +19,7 @@ library(htmltools) # for HTLMescape in popups
 # Load Database
 # --------------
 load("data/2020-04-02_database.rda")
+load("data/contours.rda")
 source("map.R")
 source("subset.R")
 # -----------------------
