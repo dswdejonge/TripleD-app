@@ -41,20 +41,20 @@ ui <- navbarPage( # page with tabs to navigate to different pages
       sidebarPanel(
         selectInput(
           "taxonomic_level",
-          label = h3("Select a taxonomic level:"),
+          label = p("Select a taxonomic level:"),
           choices = as.list(c("all_data", "phylum", "class", "order", 
                               "family", "genus", "species")),
           #choices = as.list(c("phylum", "class", "order","family", "genus", "species")),
           selected = 1),
         selectInput(
           "taxon",
-          label = h3("Select a taxon:"),
+          label = p("Select a taxon:"),
           choices = NULL,
           selected = 1
         ),
         radioButtons(
           "map_type",
-          label = h3("Map type:"),
+          label = p("Map type:"),
           choiceNames = list(
             HTML("<p>Presence - Absence</p>"),
             HTML("<p>Density (count m<sup>-2</sup>)</p>"),
@@ -64,11 +64,17 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           selected = "pa"),
         dateRangeInput(
           "dates_input",
-          label = h3("Show data between:"),
+          label = p("Show data between:"),
           start = min(database$Date),
           end = max(database$Date),
           min = min(database$Date),
           max = max(database$Date)
+        ),
+        selectInput(
+          "CruiseID",
+          label = p("Select a CruiseID:"),
+          choices = c("all",sort(unique(as.character(dplyr::pull(database,CruiseID))))),
+          selected = 1
         )
       ),
       mainPanel(
