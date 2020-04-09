@@ -1,20 +1,5 @@
-# Subset data based on input
-get_subset <- function(taxonomic_level, taxon, map_type, database, 
-                       dates_input, cruise_id, depth_range){
-  # Filter on taxonomic level
-  if(taxonomic_level == "all_data"){
-    my_subset <- database
-  }else if(taxonomic_level == "species"){
-    my_subset <- database %>%
-      dplyr::filter(rank == "Species") %>%
-      dplyr::filter(valid_name == taxon)
-  }else{
-    my_subset <- database %>%
-      dplyr::filter(!!sym(taxonomic_level) == taxon)
-  }
-  
-  
-  my_subset <- my_subset %>%
+subset_environment <- function(dataset, dates_input, depth_range, cruise_id){
+  my_subset <- dataset %>%
     # Get data within date range
     dplyr::filter(Date >= dates_input[1] & Date <= dates_input[2]) %>%
     # Get data within depth range
@@ -24,26 +9,56 @@ get_subset <- function(taxonomic_level, taxon, map_type, database,
   if(cruise_id != "all"){
     my_subset <- dplyr::filter(my_subset, CruiseID == cruise_id)
   }
-  
+  return(my_subset)
+}
+
+# Subset data based on input
+subset_taxon <- function(dataset, taxonomic_level, taxon){
+  # Filter on taxonomic level
+  if(taxonomic_level == "all_data"){
+    my_subset <- dataset
+  }else if(taxonomic_level == "species"){
+    my_subset <- dataset %>%
+      dplyr::filter(rank == "Species") %>%
+      dplyr::filter(valid_name == taxon)
+  }else{
+    my_subset <- dataset %>%
+      dplyr::filter(!!sym(taxonomic_level) == taxon)
+  }
+  return(my_subset)
+}
+
+subset_data_type <- function(dataset, map_type){
   # Get data based on map_type (do last, because info lost with select)
   if(map_type == "pa"){
-    my_subset <- my_subset %>%
+    my_subset <- dataset %>%
       dplyr::select(StationID, Lat_DD, Lon_DD) %>%
       dplyr::distinct()
     if(nrow(my_subset) > 0){
       my_subset$Value <- 1
     }
+    my_subset$do_not_include <- FALSE
   }else if(map_type == "dens"){
-    my_subset <-  my_subset %>%
-      dplyr::select(StationID, Density_nr_per_m2, Lat_DD, Lon_DD) %>%
+    my_subset <-  dataset %>%
+      dplyr::mutate(is_incomplete = ifelse(is.na(Density_nr_per_m2), 1, 0)) %>%
+      dplyr::select(StationID, Density_nr_per_m2, Lat_DD, Lon_DD, is_incomplete) %>%
       dplyr::group_by(StationID, Lat_DD, Lon_DD) %>%
-      dplyr::summarise(Value = sum(Density_nr_per_m2))
+      dplyr::summarise(
+        Value = sum(Density_nr_per_m2, na.rm = T),
+        is_incomplete = sum(is_incomplete)) %>%
+      dplyr::mutate(do_not_include = ifelse(is_incomplete > 0, TRUE, FALSE)) %>%
+      dplyr::select(-is_incomplete)
   }else if(map_type == "biom"){
-    my_subset <- my_subset %>%
-      dplyr::select(StationID, Biomass_g_per_m2, Lat_DD, Lon_DD) %>%
+    my_subset <- dataset %>%
+      dplyr::mutate(is_incomplete = ifelse(is.na(Biomass_g_per_m2), 1, 0)) %>%
+      dplyr::select(StationID, Biomass_g_per_m2, Lat_DD, Lon_DD, is_incomplete) %>%
       dplyr::group_by(StationID, Lat_DD, Lon_DD) %>%
-      dplyr::summarise(Value = sum(Biomass_g_per_m2))
+      dplyr::summarise(
+        Value = sum(Biomass_g_per_m2, na.rm = T),
+        is_incomplete = sum(is_incomplete)) %>%
+      dplyr::mutate(do_not_include = ifelse(is_incomplete > 0, TRUE, FALSE)) %>%
+      dplyr::select(-is_incomplete)
   }
-  
   return(my_subset)
 }
+  

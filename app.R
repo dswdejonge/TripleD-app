@@ -47,6 +47,11 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           ),
           choiceValues = list("pa","dens","biom"),
           selected = "pa"),
+        checkboxInput(
+          "show_incomplete_data",
+          label = p("Also show incomplete data points (underestimations)"),
+          value = TRUE
+        ),
         h3("Additional layers:"),
         checkboxInput(
           "show_bathy",
@@ -58,7 +63,7 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           label = p("Show regions of interest"),
           value = FALSE
         ),
-        h3("Filter data"),
+        h3("Filter data:"),
         selectInput(
           "taxonomic_level",
           label = p("Select a taxonomic level:"),
@@ -99,6 +104,8 @@ ui <- navbarPage( # page with tabs to navigate to different pages
         )
       ),
       mainPanel(
+        textOutput("warnings"),
+        tags$head(tags$style("#warnings{color: red}")),
         leafletOutput("mymap", height = "800px")
       )
     )
@@ -160,27 +167,43 @@ server <- function(input, output, session) {
   })
   
   # Create map
+  output$warnings <- renderText(
+    if(input$show_incomplete_data){
+      "Notifications: The map also shows incomplete data points, i.e. for some specimens in the filtered taxon no density or biomass value could be determined and the corresponding values are an underestimation."
+    }else{
+      "Notifications: NA"
+    }
+  )
   output$mymap <- renderLeaflet({
     # Get all station points (black markers)
-    all_stations <- dplyr::select(database, StationID, Date, Lat_DD, Lon_DD) %>%
-      distinct()
-    # Subset data
-    my_subset <- get_subset(
-      database = database,
-      taxonomic_level = input$taxonomic_level,
-      taxon = input$taxon, 
-      map_type = input$map_type,
+    my_stations <- subset_environment(
+      dataset = database,
       dates_input = input$dates_input,
       cruise_id = input$cruise_id,
-      depth_range = input$depth_range)
+      depth_range = input$depth_range
+    )
+    plot_stations <- dplyr::select(my_stations, StationID, Date, Lat_DD, Lon_DD) %>%
+      distinct()
+    # Subset data based on bio info
+    my_subset <- my_stations %>%
+      subset_taxon(., 
+                   taxonomic_level = input$taxonomic_level,
+                   taxon = input$taxon) %>%
+      subset_data_type(., map_type = input$map_type)
+    # Import marker legend images
+    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Sampled station, filtered taxon not found.<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data for filtered taxon.<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Incomplete data for filtered taxon."
     # Create map
     create_map(
       my_subset = my_subset, 
-      all_stations = all_stations,
+      all_stations = plot_stations,
       my_pal = my_pal,
       map_type = input$map_type,
+      show_incomplete_data = input$show_incomplete_data,
+      html_legend = html_legend,
       show_bathy = input$show_bathy,
-      show_roi = input$show_roi)
+      my_contours_df = my_contours_df,
+      show_roi = input$show_roi,
+      regions_of_interest = regions_of_interest)
   })
 
   # ------------

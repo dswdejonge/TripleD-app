@@ -1,4 +1,7 @@
-create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy, show_roi){
+create_map <- function(my_subset, all_stations, 
+                       my_pal, map_type, show_incomplete_data, html_legend,
+                       show_bathy, my_contours_df, 
+                       show_roi, regions_of_interest){
   ############
   # Map title
   ############
@@ -16,7 +19,7 @@ create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy, sh
   # Base layer
   my_map <- leaflet() %>%
     addProviderTiles(providers$Esri.OceanBasemap) %>%
-    addScaleBar(position = "bottomleft")
+    addScaleBar(position = "topright")
   
   # Bathymetry
   if(show_bathy){
@@ -63,21 +66,44 @@ create_map <- function(my_subset, all_stations, my_pal, map_type, show_bathy, sh
         max(my_subset$Value, na.rm = T)), # Maximum range
       reverse = T # Use the scale in reverse (blue is low, red is high)
     )
-    # Add markers
+    
+    # Add legends
     my_map <- my_map %>%
-      addCircleMarkers(
-        lng = my_subset$Lon_DD, 
-        lat = my_subset$Lat_DD,
-        color = my_pal(my_subset$Value),
-        radius = 15,
-        fillOpacity = 0.5,
-        stroke = FALSE
-      ) %>%
       addLegend("bottomright",
                 pal = my_pal,
                 values = my_subset$Value,
                 title = map_title,
-                opacity = 1)
+                opacity = 1) %>%
+      addControl(html = html_legend, position = "bottomleft")
+    
+    # Add complete markers
+    complete_points <- my_subset[!my_subset$do_not_include,]
+    my_map <- my_map %>%
+      addCircleMarkers(
+        lng = complete_points$Lon_DD, 
+        lat = complete_points$Lat_DD,
+        color = my_pal(complete_points$Value),
+        radius = 15,
+        fillOpacity = 1.0,
+        stroke = FALSE
+      )
+    # Add incomplete data points
+    if(show_incomplete_data){
+      incomplete_points <- my_subset[my_subset$do_not_include,]
+      if(nrow(incomplete_points) > 0){
+        my_map <- my_map %>%
+          addCircleMarkers(
+            lng = incomplete_points$Lon_DD,
+            lat = incomplete_points$Lat_DD,
+            radius = 15,
+            fillColor = my_pal(incomplete_points$Value),
+            fillOpacity = 0.3,
+            stroke = TRUE,
+            color = my_pal(incomplete_points$Value),
+            opacity = 1.0
+          )
+      } 
+    }
   }
   # Add station markers
   my_map <- my_map %>% 
