@@ -2,6 +2,10 @@ create_map <- function(my_subset, all_stations,
                        my_pal, map_type, show_incomplete_data, html_legend,
                        show_bathy, my_contours_df, 
                        show_roi, regions_of_interest){
+  # Fixed parameters
+  station_radius <- 7
+  sample_radius <- 20
+  
   ############
   # Map title
   ############
@@ -83,9 +87,10 @@ create_map <- function(my_subset, all_stations,
         lng = complete_points$Lon_DD, 
         lat = complete_points$Lat_DD,
         color = my_pal(complete_points$Value),
-        radius = 15,
+        radius = sample_radius,
         fillOpacity = 1.0,
-        stroke = FALSE
+        stroke = FALSE,
+        popup = htmltools::htmlEscape(paste0("Value: ",complete_points$Value))
       )
     # Add incomplete data points
     if(show_incomplete_data){
@@ -95,12 +100,13 @@ create_map <- function(my_subset, all_stations,
           addCircleMarkers(
             lng = incomplete_points$Lon_DD,
             lat = incomplete_points$Lat_DD,
-            radius = 15,
+            radius = sample_radius,
             fillColor = my_pal(incomplete_points$Value),
             fillOpacity = 0.3,
             stroke = TRUE,
             color = my_pal(incomplete_points$Value),
-            opacity = 1.0
+            opacity = 1.0,
+            popup = htmltools::htmlEscape(paste0("Value: ",incomplete_points$Value))
           )
       } 
     }
@@ -110,13 +116,14 @@ create_map <- function(my_subset, all_stations,
     addCircleMarkers(
       lng = all_stations$Lon_DD,
       lat = all_stations$Lat_DD,
-      radius = 3,
+      radius = station_radius,
       fillOpacity = 1.0,
       color = "black",
       stroke = FALSE,
       popup = htmltools::htmlEscape(
         paste0("StationID: ",all_stations$StationID,
-               "\n Date: ",  all_stations$Date))
+               " Station name: ",all_stations$Station_name,
+               " Date: ", all_stations$Date))
     )
   
   return(my_map)

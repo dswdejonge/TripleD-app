@@ -182,7 +182,9 @@ server <- function(input, output, session) {
       cruise_id = input$cruise_id,
       depth_range = input$depth_range
     )
-    plot_stations <- dplyr::select(my_stations, StationID, Date, Lat_DD, Lon_DD) %>%
+    plot_stations <- dplyr::select(my_stations, 
+                                   StationID, Station_name, Date, 
+                                   Lat_DD, Lon_DD) %>%
       distinct()
     # Subset data based on bio info
     my_subset <- my_stations %>%
