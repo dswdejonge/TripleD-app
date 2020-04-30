@@ -18,7 +18,8 @@ library(htmltools) # for HTLMescape in popups
 # --------------
 # Load Database
 # --------------
-load("data/2020-04-02_database.rda")
+#load("data/2020-04-27_database.rda")
+load("data/2020-04-30_database.rda")
 load("data/contours.rda")
 load("data/regions_of_interest.rda")
 source("map.R")
@@ -185,7 +186,7 @@ server <- function(input, output, session) {
     plot_stations <- dplyr::select(my_stations, 
                                    StationID, Station_name, Date, 
                                    Lat_DD, Lon_DD) %>%
-      distinct()
+                     dplyr::distinct()
     # Subset data based on bio info
     my_subset <- my_stations %>%
       subset_taxon(., 
