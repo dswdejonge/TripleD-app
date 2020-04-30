@@ -1,0 +1,18 @@
+<br>
+<h4>The monitoring task force</h4>
+<p><img src='bannerMON.jpg' title='The monitoring task force' width = 300/></p>
+<p></p>
+<p>
+The macrobenthos data of the Schelde estuary were gathered by the monitoring task force (MON) located at NIOZ-Yerseke.</p> 
+
+<p>MON has established a strong network with national and local authorities responsible for the monitoring of (the environmental quality of) the marine and brackish waters in the Netherlands, e.g. Rijkswaterstaat (RWS) and the Rotterdam Harbour Authorities (HbR). 
+Thereby, MON is involved in the major studies regarding the implementation of (the legally obligatory) monitoring in the frame of the Water Framework Directive and environmental impacts in the marine and brackish water of South-western Netherlands. MON encompasses all aspects from the field sampling through the practical laboratory and taxonomic analyses, to scientific analyses and advice to contractors. The data of MON are also frequently used by the fundamental research departments YRE and YES of the NIOZ-Yerseke.</p>
+
+<p>Over the years MON has generated extensive long-term data series on macrobenthic communities and compiled a database with historical data (for some taxa from the early 60’s) on the marine macro-benthic communities of the SW parts of the Netherlands. These data are stored in their database, called the benthos information system.
+
+The Westerschelde data that are made available here are but a small part of this data base.</p>
+
+<p>
+The current data portal is the result from the cooperation between members of the MON data group and of the department YES.
+</p>
+<p>More information "<a title="MON" href="http://www.nioz.nl/mon-en" onclick="return !window.open(this.href)">MON</a>"</p>

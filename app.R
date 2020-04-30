@@ -9,6 +9,9 @@
 
 # install.packages("shiny)
 # install.packages("leaflet")
+# install.packages("dplyr")
+# install.packages("RColorBrewer")
+# install.packages("htmltools")
 library(shiny)
 library(leaflet) # for interactive map
 library(dplyr) # for data manipulation
