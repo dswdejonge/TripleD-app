@@ -237,8 +237,58 @@ server <- function(input, output, session) {
       subset_data_type(., map_type = input$map_type)
   })
   
-  # Create map
+  # -----------------------------------------------
+  # Render base map
+  # -----------------------------------------------
   output$mymap <- renderLeaflet({
+    leaflet() %>%
+      addProviderTiles(providers$Esri.OceanBasemap) %>%
+      addScaleBar(position = "topright")
+  })
+  
+  # -----------------------------------------------
+  # Render and update layer with station markers
+  # -----------------------------------------------
+  observe({
+    # Get station marker
+    station_marker <- makeIcon(
+      iconUrl = "Station.png", 
+      iconWidth = 24, iconHeight = 24,
+      iconAnchorX = 12, iconAnchorY = 12)
+    # Subset data
+    mysubset <- filter_on_station_metadata()
+    plot_stations <- dplyr::select(
+      mysubset, 
+      StationID, Station_name, Date, 
+      Lat_DD, Lon_DD) %>% 
+      dplyr::distinct()
+    # Update layer with proxy
+    leafletProxy("mymap") %>%
+      clearMarkers() %>%
+      addMarkers(
+          lng = plot_stations$Lon_DD,
+          lat = plot_stations$Lat_DD,
+          icon = station_marker,
+          popup = htmltools::htmlEscape(
+            paste0("StationID: ",plot_stations$StationID,
+                   " Station name: ",plot_stations$Station_name,
+                   " Date: ", plot_stations$Date))
+        ) #%>%
+      #addCircleMarkers(
+      #  lng = plot_stations$Lon_DD,
+      #  lat = plot_stations$Lat_DD,
+      #  radius = 7,
+      #  fillOpacity = 1.0,
+      #  color = "black",
+      #  stroke = FALSE,
+      #  popup = htmltools::htmlEscape(
+      #    paste0("StationID: ",plot_stations$StationID,
+      #           " Station name: ",plot_stations$Station_name,
+      #           " Date: ",plot_stations$Date))
+      #)
+  })
+  
+  #output$mymap <- renderLeaflet({
     # Get all station points (black markers)
     #my_stations <- subset_environment(
     #  dataset = database,
@@ -246,36 +296,36 @@ server <- function(input, output, session) {
     #  cruise_id = input$cruise_id,
     #  depth_range = input$depth_range
     #)
-    plot_stations <- dplyr::select(filter_on_station_metadata(), 
-                                   StationID, Station_name, Date, 
-                                   Lat_DD, Lon_DD) %>%
-                     dplyr::distinct()
+    #plot_stations <- dplyr::select(filter_on_station_metadata(), 
+    #                               StationID, Station_name, Date, 
+    #                               Lat_DD, Lon_DD) %>%
+    #                 dplyr::distinct()
     # Subset data based on bio info
     #my_subset <- my_stations %>%
     #  subset_taxon(., 
     #               taxonomic_level = input$taxonomic_level,
     #               taxon = input$taxon) %>%
     #  subset_data_type(., map_type = input$map_type)
-    my_subset <- filter_on_taxonomy()
+    #my_subset <- filter_on_taxonomy()
     
     # Import marker legend images
     # Get station markers
-    station_marker <- makeIcon(iconUrl = "Station.png")
-    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Sampled station, filtered taxon not found.<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data for filtered taxon.<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Incomplete data for filtered taxon."
+    #station_marker <- makeIcon(iconUrl = "Station.png")
+    #html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Sampled station, filtered taxon not found.<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data for filtered taxon.<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Incomplete data for filtered taxon."
     # Create map
-    create_map(
-      my_subset = my_subset, 
-      all_stations = plot_stations,
-      station_marker = station_marker,
-      my_pal = my_pal,
-      map_type = input$map_type,
-      show_incomplete_data = input$show_incomplete_data,
-      html_legend = html_legend,
-      show_bathy = input$show_bathy,
-      my_contours_df = my_contours_df,
-      show_roi = input$show_roi,
-      regions_of_interest = regions_of_interest)
-  })
+    #create_map(
+    #  my_subset = my_subset, 
+    #  all_stations = plot_stations,
+    #  station_marker = station_marker,
+    #  my_pal = my_pal,
+    #  map_type = input$map_type,
+    #  show_incomplete_data = input$show_incomplete_data,
+    #  html_legend = html_legend,
+    #  show_bathy = input$show_bathy,
+    #  my_contours_df = my_contours_df,
+    #  show_roi = input$show_roi,
+    #  regions_of_interest = regions_of_interest)
+  #})
 
   # ------------
   # Statistics page
