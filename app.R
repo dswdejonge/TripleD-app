@@ -243,7 +243,8 @@ server <- function(input, output, session) {
   output$mymap <- renderLeaflet({
     leaflet() %>%
       addProviderTiles(providers$Esri.OceanBasemap) %>%
-      addScaleBar(position = "topright")
+      addScaleBar(position = "topright") %>%
+      setView(lng = 4.0, lat = 55, zoom = 6) #55°18'24.6"N 3°53'42.4"E
   })
   
   # -----------------------------------------------
@@ -253,8 +254,8 @@ server <- function(input, output, session) {
     # Get station marker
     station_marker <- makeIcon(
       iconUrl = "Station.png", 
-      iconWidth = 24, iconHeight = 24,
-      iconAnchorX = 12, iconAnchorY = 12)
+      iconWidth = 12, iconHeight = 12,
+      iconAnchorX = 6, iconAnchorY = 6)
     # Subset data
     mysubset <- filter_on_station_metadata()
     plot_stations <- dplyr::select(
