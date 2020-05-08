@@ -243,6 +243,10 @@ server <- function(input, output, session) {
       reverse = F # Use the scale in reverse (dark blue is deeper)
     )
     
+    # Make legend image
+    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Stations<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Underestimations"
+    
+    # Build map
     leaflet() %>%
       addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
       addScaleBar(position = "topright") %>%
@@ -268,7 +272,8 @@ server <- function(input, output, session) {
       addLayersControl(
         overlayGroups = c("Bathymetry", "Regions of interest"),
         options = layersControlOptions(collapsed = FALSE)
-      )
+      ) %>%
+      addControl(html = html_legend, position = "bottomleft")
   })
   
   # -----------------------------------------------
@@ -306,8 +311,6 @@ server <- function(input, output, session) {
   # Render and update layer with data markers
   # -----------------------------------------------
   observe({
-    # Image as legend:
-    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Sampled station, filtered taxon not found.<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data for filtered taxon.<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Incomplete data for filtered taxon."
     map_title <- get_map_title()
     # Subset data
     my_subset <- filter_on_taxonomy()
