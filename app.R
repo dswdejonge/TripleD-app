@@ -305,113 +305,99 @@ server <- function(input, output, session) {
   })
   
   # -----------------------------------------------
-  # Render and update data legend
+  # Render and update data marker points and legend
   # -----------------------------------------------
   observe({
-    incomplete_marker_legend <- input$show_incomplete_data
+    # New subset
     my_subset <- filter_on_taxonomy()
-    if(!incomplete_marker_legend){
-      my_subset <- my_subset[!my_subset$do_not_include,]
-    }
-    my_pal <- get_palette(my_subset)
-    leafletProxy("mymap") %>%
+    # Remove all markers and legend
+    proxy <- leafletProxy("mymap") %>%
       removeControl(layerId = "Legend") %>%
-      addLegend(
-        layerId = "Legend",
-        "bottomright",
-        pal = my_pal,
-        values = my_subset$Value,
-        title = get_map_title(),
-        opacity = 1)
+      clearGroup(group = "Complete markers") %>%
+      clearGroup(group = "Incomplete markers")
+    # Only add new data if data in subset
+    if(nrow(my_subset) > 0){
+      complete_points <- my_subset[!my_subset$do_not_include,]
+      incomplete_points <- my_subset[my_subset$do_not_include,]
+      # When all data incl. incomplete is shown,
+      # use a palette based on all data and
+      # add complete and incomplete markers separately
+      if(input$show_incomplete_data){
+        my_pal <- get_palette(my_subset)
+        proxy <- proxy %>%
+          addLegend(
+            layerId = "Legend",
+            "bottomright",
+            pal = my_pal,
+            values = my_subset$Value,
+            title = get_map_title(),
+            opacity = 1)
+        # Add markers if data exists
+        if(nrow(complete_points) > 0){
+          proxy <- proxy %>%
+            addCircleMarkers(
+              group = "Complete markers",
+              lng = complete_points$Lon_DD,
+              lat = complete_points$Lat_DD,
+              color = my_pal(complete_points$Value),
+              radius = 13,
+              fillOpacity = 1.0,
+              stroke = FALSE,
+              popup = htmltools::htmlEscape(paste0("Value: ",complete_points$Value))
+            )
+        }
+        # Add markers if data exists
+        if(nrow(incomplete_points) > 0){
+          proxy <- proxy %>%
+            addCircleMarkers(
+              group = "Incomplete markers",
+              lng = incomplete_points$Lon_DD,
+              lat = incomplete_points$Lat_DD,
+              radius = 13,
+              fillColor = my_pal(incomplete_points$Value),
+              fillOpacity = 0.3,
+              stroke = TRUE,
+              color = my_pal(incomplete_points$Value),
+              opacity = 1.0,
+              popup = htmltools::htmlEscape(paste0("Value: ",incomplete_points$Value))
+            )
+        }
+      }else{
+      # If only complete points are shown,
+      # use a palette based on the complete data and
+      # add only complete markers
+        if(nrow(complete_points) > 0){
+          my_pal <- get_palette(complete_points)
+          proxy <- proxy %>%
+            addLegend(
+              layerId = "Legend",
+              "bottomright",
+              pal = my_pal,
+              values = complete_points$Value,
+              title = get_map_title(),
+              opacity = 1) %>%
+            addCircleMarkers(
+              group = "Complete markers",
+              lng = complete_points$Lon_DD,
+              lat = complete_points$Lat_DD,
+              color = my_pal(complete_points$Value),
+              radius = 13,
+              fillOpacity = 1.0,
+              stroke = FALSE,
+              popup = htmltools::htmlEscape(paste0("Value: ",complete_points$Value))
+            )
+        }
+      }
+      # Return updated proxy
+      proxy
+    }else{
+    # If there is no data in subset
+      leafletProxy("mymap") %>%
+        removeControl(layerId = "Legend") %>%
+        clearGroup(group = "Complete markers") %>%
+        clearGroup(group = "Incomplete markers")
+    }
   })
-  
-  # -----------------------------------------------
-  # Render and update layer with complete data markers
-  # -----------------------------------------------
-  # observe({
-  #   my_subset <- filter_on_taxonomy()
-  #   complete_points <- my_subset[!my_subset$do_not_include,]
-  #   proxy <- leafletProxy("mymap") %>%
-  #     removeControl(layerId = "Legend") %>%
-  #     clearGroup(group = "Complete markers")
-  #   if(nrow(complete_points) > 0){
-  #     my_pal <- get_palette(complete_points)
-  #     proxy %>%
-  #       addLegend(
-  #         layerId = "Legend",
-  #         "bottomright",
-  #         pal = my_pal,
-  #         values = complete_points$Value,
-  #         title = get_map_title(),
-  #         opacity = 1) %>%
-  #       addCircleMarkers(
-  #         group = "Complete markers",
-  #         lng = complete_points$Lon_DD,
-  #         lat = complete_points$Lat_DD,
-  #         color = my_pal(complete_points$Value),
-  #         radius = 13,
-  #         fillOpacity = 1.0,
-  #         stroke = FALSE,
-  #         popup = htmltools::htmlEscape(paste0("Value: ",complete_points$Value))
-  #       )
-  #   }
-  # })
-  #   
-  # # -----------------------------------------------
-  # # Render and update layer with incomplete data markers
-  # # -----------------------------------------------
-  # observe({
-  #   if(input$show_incomplete_data){
-  #     my_subset <- filter_on_taxonomy()
-  #     incomplete_points <- my_subset[my_subset$do_not_include,]
-  #     if(nrow(incomplete_points) > 0){
-  #       my_pal <- get_palette(my_subset)
-  #       leafletProxy("mymap") %>%
-  #         removeControl(layerId = "Legend") %>%
-  #         clearGroup(group = "Incomplete markers") %>%
-  #         addLegend(
-  #           layerId = "Legend",
-  #           "bottomright",
-  #           pal = my_pal,
-  #           values = my_subset$Value,
-  #           title = get_map_title(),
-  #           opacity = 1) %>%
-  #         addCircleMarkers(
-  #           group = "Incomplete markers",
-  #           lng = incomplete_points$Lon_DD,
-  #           lat = incomplete_points$Lat_DD,
-  #           radius = 13,
-  #           fillColor = my_pal(incomplete_points$Value),
-  #           fillOpacity = 0.3,
-  #           stroke = TRUE,
-  #           color = my_pal(incomplete_points$Value),
-  #           opacity = 1.0,
-  #           popup = htmltools::htmlEscape(paste0("Value: ",incomplete_points$Value))
-  #         )
-  #     }else{
-  #       # Don't show incomplete data = delete markers
-  #       leafletProxy("mymap") %>%
-  #         clearGroup(group = "Incomplete markers")
-  #     }
-  #   }
-  # })
-  
-  
-  #output$mymap <- renderLeaflet({
-    # Create map
-    #create_map(
-    #  my_subset = my_subset, 
-    #  all_stations = stations_to_plot,
-    #  station_marker = station_marker,
-    #  my_pal = my_pal,
-    #  map_type = input$map_type,
-    #  show_incomplete_data = input$show_incomplete_data,
-    #  html_legend = html_legend,
-    #  show_bathy = input$show_bathy,
-    #  my_contours_df = my_contours_df,
-    #  show_roi = input$show_roi,
-    #  regions_of_interest = regions_of_interest)
-  #})
 }
 
 # Run the application
