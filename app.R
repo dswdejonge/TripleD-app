@@ -241,10 +241,31 @@ server <- function(input, output, session) {
   # Render base map
   # -----------------------------------------------
   output$mymap <- renderLeaflet({
+    # Get palette for bathymetry
+    bathy_pal <- colorNumeric(
+      palette = RColorBrewer::brewer.pal(9, "Blues"),
+      domain = c(
+        min(my_contours_df$depth, na.rm = T), # Minimum range
+        max(my_contours_df$depth, na.rm = T)), # Maximum range
+      reverse = F # Use the scale in reverse (dark blue is deeper)
+    )
+    
     leaflet() %>%
-      addProviderTiles(providers$Esri.OceanBasemap) %>%
+      addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
       addScaleBar(position = "topright") %>%
-      setView(lng = 4.0, lat = 55, zoom = 6) #55°18'24.6"N 3°53'42.4"E
+      setView(lng = 4.0, lat = 55, zoom = 6) %>% #55°18'24.6"N 3°53'42.4"E
+      # Add bathymetry layer
+      addPolylines(
+        group = "Bathymetry",
+        data = my_contours_df, # SpatialLinesDataFrame object from sp package
+        color = bathy_pal(my_contours_df$depth),
+        weight = 2,
+        opacity = 0.8,
+        label = paste0(my_contours_df$depth, " m.")) %>%
+      addLayersControl(
+        overlayGroups = "Bathymetry",
+        options = layersControlOptions(collapsed = FALSE)
+      )
   })
   
   # -----------------------------------------------
@@ -265,28 +286,17 @@ server <- function(input, output, session) {
       dplyr::distinct()
     # Update layer with proxy
     leafletProxy("mymap") %>%
-      clearMarkers() %>%
+      clearGroup(group = "Station markers") %>%
       addMarkers(
-          lng = plot_stations$Lon_DD,
-          lat = plot_stations$Lat_DD,
-          icon = station_marker,
-          popup = htmltools::htmlEscape(
-            paste0("StationID: ",plot_stations$StationID,
-                   " Station name: ",plot_stations$Station_name,
-                   " Date: ", plot_stations$Date))
-        ) #%>%
-      #addCircleMarkers(
-      #  lng = plot_stations$Lon_DD,
-      #  lat = plot_stations$Lat_DD,
-      #  radius = 7,
-      #  fillOpacity = 1.0,
-      #  color = "black",
-      #  stroke = FALSE,
-      #  popup = htmltools::htmlEscape(
-      #    paste0("StationID: ",plot_stations$StationID,
-      #           " Station name: ",plot_stations$Station_name,
-      #           " Date: ",plot_stations$Date))
-      #)
+        group = "Station markers",
+        lng = plot_stations$Lon_DD,
+        lat = plot_stations$Lat_DD,
+        icon = station_marker,
+        popup = htmltools::htmlEscape(
+          paste0("StationID: ",plot_stations$StationID,
+                 " Station name: ",plot_stations$Station_name,
+                 " Date: ", plot_stations$Date))
+      )
   })
   
   #output$mymap <- renderLeaflet({
