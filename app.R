@@ -80,7 +80,7 @@ ui <- navbarPage( # page with tabs to navigate to different pages
         selectInput(
           "taxon",
           label = p("Select a taxon:"),
-          choices = NULL,
+          choices = as.list(NA),
           selected = 1
         ),
         # --------------------------------------------------------
@@ -169,172 +169,189 @@ server <- function(input, output, session) {
   # -----------------------------------------------
   # Update selection box based on taxonomic level
   # -----------------------------------------------
-  observeEvent(input$taxonomic_level,{
-    # Get list of choices
+  get_taxon_choices <- reactive({
     if(input$taxonomic_level == "all_data"){
-      my_choices <- as.list(NA)
+      as.list(NA)
     }else if(input$taxonomic_level == "species"){
       temp <- database %>%
         dplyr::filter(rank == "Species") %>%
         dplyr::pull(valid_name)
-      my_choices <- as.list(sort(unique(temp)))
+      as.list(sort(unique(temp)))
     }else{
-      my_choices <- as.list(sort(unique(dplyr::pull(database,input$taxonomic_level))))
+      as.list(sort(unique(dplyr::pull(database,input$taxonomic_level))))
     }
-   # Update the select box
+  })
+  #observeEvent(input$taxonomic_level,{
+   observe({
     updateSelectInput(
       session,
       inputId = "taxon",
-      choices = my_choices
+      choices = get_taxon_choices()
     )
   })
   
   # -----------------------------------------------
   # Render notifications about data
   # -----------------------------------------------
+  get_notification_text <- reactive({
+    paste("Notifications:",input$taxonomic_level,input$taxon, sep = " ")
+  })
   output$notifications <- renderText(
-    if(input$show_incomplete_data){
-      "Notifications: The data includes incomplete data points, i.e. these values are underestimations."
-    }else{
-      "Notifications: NA"
-    }
+    get_notification_text()
+    #if(input$show_incomplete_data){
+    #  "Notifications: The data includes incomplete data points, i.e. these values are underestimations."
+    #}else{
+    #  "Notifications: NA"
+    #}
   )
   
   # -----------------------------------------------
   # Reactive functions to filter data
-  # -----------------------------------------------
-  filter_on_station_metadata <- reactive({
-    subset_environment(
-      dataset = database,
-      dates_input = input$dates_input,
-      cruise_id = input$cruise_id,
-      depth_range = input$depth_range
-    )
-  })
-  
-  filter_on_taxonomy <- reactive({
-    filter_on_station_metadata() %>%
-      subset_taxon(., 
-                   taxonomic_level = input$taxonomic_level,
-                   taxon = input$taxon) %>%
-      subset_data_type(., map_type = input$map_type)
-  })
-  
-  get_map_title <- reactive({
-    if(input$map_type == "pa"){
-      HTML("<p>Presence - Absence</p>")
-    }else if(input$map_type == "dens"){
-      HTML("<p>Density (count m<sup>-2</sup>)</p>")  
-    }else if(input$map_type == "biom"){
-      HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>") 
-    }
-  })
+  # # -----------------------------------------------
+  # filter_on_station_metadata <- reactive({
+  #   subset_environment(
+  #     dataset = database,
+  #     dates_input = input$dates_input,
+  #     cruise_id = input$cruise_id,
+  #     depth_range = input$depth_range
+  #   )
+  # })
+  # 
+  # filter_on_taxonomy <- reactive({
+  #   filter_on_station_metadata() %>%
+  #     subset_taxon(., 
+  #                  taxonomic_level = input$taxonomic_level,
+  #                  taxon = input$taxon) %>%
+  #     subset_data_type(., map_type = input$map_type)
+  # })
+  # 
+  # get_map_title <- reactive({
+  #   if(input$map_type == "pa"){
+  #     HTML("<p>Presence - Absence</p>")
+  #   }else if(input$map_type == "dens"){
+  #     HTML("<p>Density (count m<sup>-2</sup>)</p>")  
+  #   }else if(input$map_type == "biom"){
+  #     HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>") 
+  #   }
+  # })
   
   # -----------------------------------------------
   # Render base map
   # -----------------------------------------------
-  output$mymap <- renderLeaflet({
-    # Get palette for bathymetry
-    bathy_pal <- colorNumeric(
-      palette = RColorBrewer::brewer.pal(9, "Blues"),
-      domain = c(
-        min(my_contours_df$depth, na.rm = T), # Minimum range
-        max(my_contours_df$depth, na.rm = T)), # Maximum range
-      reverse = F # Use the scale in reverse (dark blue is deeper)
-    )
-    
-    # Make legend image
-    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Stations<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Underestimations"
-    
-    # Build map
-    leaflet() %>%
-      addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
-      addScaleBar(position = "topright") %>%
-      setView(lng = 4.0, lat = 55, zoom = 6) %>% #55°18'24.6"N 3°53'42.4"E
-      # Add bathymetry layer
-      addPolylines(
-        group = "Bathymetry",
-        data = my_contours_df, # SpatialLinesDataFrame object from sp package
-        color = bathy_pal(my_contours_df$depth),
-        weight = 2,
-        opacity = 0.8,
-        label = paste0(my_contours_df$depth, " m.")) %>%
-      # Add regions of interest layer
-      addPolygons(
-        group = "Regions of interest",
-        data = regions_of_interest,
-        popup = htmltools::htmlEscape(paste0(
-          regions_of_interest$name, 
-          " (", regions_of_interest$type,"). ",
-          "Area: ", regions_of_interest$area_ha, " ha."))
-      ) %>%
-      # Add layer control (show/hide layers)
-      addLayersControl(
-        overlayGroups = c("Bathymetry", "Regions of interest"),
-        options = layersControlOptions(collapsed = FALSE)
-      ) %>%
-      addControl(html = html_legend, position = "bottomleft")
-  })
+  # output$mymap <- renderLeaflet({
+  #   # Get palette for bathymetry
+  #   bathy_pal <- colorNumeric(
+  #     palette = RColorBrewer::brewer.pal(9, "Blues"),
+  #     domain = c(
+  #       min(my_contours_df$depth, na.rm = T), # Minimum range
+  #       max(my_contours_df$depth, na.rm = T)), # Maximum range
+  #     reverse = F # Use the scale in reverse (dark blue is deeper)
+  #   )
+  #   
+  #   # Make legend image
+  #   html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Stations<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Underestimations"
+  #   
+  #   # Build map
+  #   leaflet() %>%
+  #     addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
+  #     addScaleBar(position = "topright") %>%
+  #     setView(lng = 4.0, lat = 55, zoom = 6) %>% #55°18'24.6"N 3°53'42.4"E
+  #     # Add bathymetry layer
+  #     addPolylines(
+  #       group = "Bathymetry",
+  #       data = my_contours_df, # SpatialLinesDataFrame object from sp package
+  #       color = bathy_pal(my_contours_df$depth),
+  #       weight = 2,
+  #       opacity = 0.8,
+  #       label = paste0(my_contours_df$depth, " m.")) %>%
+  #     # Add regions of interest layer
+  #     addPolygons(
+  #       group = "Regions of interest",
+  #       data = regions_of_interest,
+  #       popup = htmltools::htmlEscape(paste0(
+  #         regions_of_interest$name, 
+  #         " (", regions_of_interest$type,"). ",
+  #         "Area: ", regions_of_interest$area_ha, " ha."))
+  #     ) %>%
+  #     # Add layer control (show/hide layers)
+  #     addLayersControl(
+  #       overlayGroups = c("Bathymetry", "Regions of interest"),
+  #       options = layersControlOptions(collapsed = FALSE)
+  #     ) %>%
+  #     addControl(html = html_legend, position = "bottomleft")
+  # })
   
   # -----------------------------------------------
   # Render and update layer with station markers
   # -----------------------------------------------
-  observe({
-    # Get station marker
-    station_marker <- makeIcon(
-      iconUrl = "Station.png", 
-      iconWidth = 12, iconHeight = 12,
-      iconAnchorX = 6, iconAnchorY = 6)
-    # Subset data
-    mysubset <- filter_on_station_metadata()
-    plot_stations <- dplyr::select(
-      mysubset, 
-      StationID, Station_name, Date, 
-      Lat_DD, Lon_DD) %>% 
-      dplyr::distinct()
-    # Update layer with proxy
-    leafletProxy("mymap") %>%
-      clearGroup(group = "Station markers") %>%
-      addMarkers(
-        group = "Station markers",
-        lng = plot_stations$Lon_DD,
-        lat = plot_stations$Lat_DD,
-        icon = station_marker,
-        popup = htmltools::htmlEscape(
-          paste0("StationID: ",plot_stations$StationID,
-                 " Station name: ",plot_stations$Station_name,
-                 " Date: ", plot_stations$Date))
-      )
-  })
+  # observe({
+  #   # Get station marker
+  #   station_marker <- makeIcon(
+  #     iconUrl = "Station.png", 
+  #     iconWidth = 12, iconHeight = 12,
+  #     iconAnchorX = 6, iconAnchorY = 6)
+  #   # Subset data
+  #   mysubset <- filter_on_station_metadata()
+  #   plot_stations <- dplyr::select(
+  #     mysubset, 
+  #     StationID, Station_name, Date, 
+  #     Lat_DD, Lon_DD) %>% 
+  #     dplyr::distinct()
+  #   # Update layer with proxy
+  #   leafletProxy("mymap") %>%
+  #     clearGroup(group = "Station markers") %>%
+  #     addMarkers(
+  #       group = "Station markers",
+  #       lng = plot_stations$Lon_DD,
+  #       lat = plot_stations$Lat_DD,
+  #       icon = station_marker,
+  #       popup = htmltools::htmlEscape(
+  #         paste0("StationID: ",plot_stations$StationID,
+  #                " Station name: ",plot_stations$Station_name,
+  #                " Date: ", plot_stations$Date))
+  #     )
+  # })
   
   # -----------------------------------------------
-  # Render and update layer with data markers
+  # Render and update layer with all data markers
   # -----------------------------------------------
-  observe({
-    map_title <- get_map_title()
+  #observe({
+  #  map_title <- get_map_title()
     # Subset data
-    my_subset <- filter_on_taxonomy()
-    if(nrow(my_subset) > 0){
-      my_pal <- colorNumeric(
-        palette = RColorBrewer::brewer.pal(11, "Spectral"), # Spectral palette
-        domain = c(
-          min(my_subset$Value, na.rm = T), # Minimum range
-          max(my_subset$Value, na.rm = T)), # Maximum range
-        reverse = T # Use the scale in reverse (blue is low, red is high)
-      )
-    }
+  #  my_subset <- filter_on_taxonomy()
+    #complete_points <- my_subset[!my_subset$do_not_include,]
+  #  if(nrow(my_subset) > 0){
+  #    my_pal <- colorNumeric(
+  #      palette = RColorBrewer::brewer.pal(11, "Spectral"), # Spectral palette
+  #      domain = c(
+  #        min(my_subset$Value, na.rm = T), # Minimum range
+  #        max(my_subset$Value, na.rm = T)), # Maximum range
+  #      reverse = T # Use the scale in reverse (blue is low, red is high)
+  #    )
+  #  }
   
     # Update layer with proxy
-    leafletProxy("mymap") %>%
-      removeControl(layerId = "Legend") %>%
-      addLegend(
-        layerId = "Legend",
-        "bottomright",
-        pal = my_pal,
-        values = my_subset$Value,
-        title = map_title,
-        opacity = 1)
-  })
+  #  leafletProxy("mymap") %>%
+  #    removeControl(layerId = "Legend") %>%
+  #    clearGroup(group = "Data markers") %>%
+  #    addLegend(
+  #      layerId = "Legend",
+  #      "bottomright",
+  #      pal = my_pal,
+  #      values = my_subset$Value,
+  #      title = map_title,
+  #      opacity = 1) #%>%
+      #addCircleMarkers(
+      #  group = "Data markers",
+      #  lng = my_subset$Lon_DD, 
+      #  lat = my_subset$Lat_DD,
+      #  color = my_pal(my_subset$Value),
+      #  radius = 13,
+      #  fillOpacity = 1.0,
+      #  stroke = FALSE,
+      #  popup = htmltools::htmlEscape(paste0("Value: ",my_subset$Value))
+      #)
+  #})
   
   #output$mymap <- renderLeaflet({
     # Create map
