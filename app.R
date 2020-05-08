@@ -230,6 +230,10 @@ server <- function(input, output, session) {
     leaflet() %>%
       addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
       addScaleBar(position = "topright") %>%
+      addGraticule(
+        group = "Graticule",
+        interval = 2
+      ) %>%
       setView(lng = 4.0, lat = 55, zoom = 6) %>%
       # Add bathymetry layer
       addPolylines(
@@ -250,7 +254,7 @@ server <- function(input, output, session) {
       ) %>%
       # Add layer control (show/hide layers)
       addLayersControl(
-        overlayGroups = c("Bathymetry", "Regions of interest"),
+        overlayGroups = c("Bathymetry", "Regions of interest", "Graticule"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>%
       addControl(html = html_legend, position = "bottomleft")
