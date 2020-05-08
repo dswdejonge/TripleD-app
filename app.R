@@ -70,7 +70,7 @@ ui <- navbarPage( # page with tabs to navigate to different pages
         ),
         checkboxInput(
           "log_transform",
-          label = p("Log-transform data"),
+          label = p("Log10-transform data"),
           value = FALSE
         ),
         h3("Filter data:"),
@@ -208,7 +208,7 @@ server <- function(input, output, session) {
       incomplete_message <- ""
     }
     if(input$log_transform){
-      log_message <- "Data is log transformed."
+      log_message <- "Data is Log10 transformed."
     }else{
       log_message <- ""
     }
@@ -309,9 +309,17 @@ server <- function(input, output, session) {
     if(input$map_type == "pa"){
       HTML("<p>Presence - Absence</p>")
     }else if(input$map_type == "dens"){
-      HTML("<p>Density (count m<sup>-2</sup>)</p>")
+      if(input$log_transform){
+        HTML("<p>Density [log10(count m<sup>-2</sup>)]</p>")
+      }else{
+        HTML("<p>Density [count m<sup>-2</sup>]</p>")
+      }
     }else if(input$map_type == "biom"){
-      HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>")
+      if(input$log_transform){
+        HTML("<p>Biomass [log10(g AFDW m<sup>-2</sup>)]</p>")
+      }else{
+        HTML("<p>Biomass [g AFDW m<sup>-2</sup>]</p>")
+      }
     }
   })
   
@@ -327,7 +335,7 @@ server <- function(input, output, session) {
     if(input$log_transform){
       my_subset <- filter_on_taxonomy()
       if(nrow(my_subset) > 0){
-        dplyr::mutate(my_subset, Value = log(Value))
+        dplyr::mutate(my_subset, Value = log10(Value))
       }else(
         my_subset
       )
