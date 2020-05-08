@@ -230,9 +230,9 @@ server <- function(input, output, session) {
     leaflet() %>%
       addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
       addScaleBar(position = "topright") %>%
-      addGraticule(
-        group = "Graticule",
-        interval = 2
+      addSimpleGraticule(
+        interval = 2,
+        showOriginLabel = T
       ) %>%
       setView(lng = 4.0, lat = 55, zoom = 6) %>%
       # Add bathymetry layer
