@@ -11,6 +11,7 @@
 # install.packages("dplyr")
 # install.packages("RColorBrewer")
 # install.packages("htmltools")
+# install.packages("ggplot2")
 
 ################################################
 # 2. Load the package below
@@ -20,6 +21,7 @@ library(leaflet) # for interactive map
 library(dplyr) # for data manipulation
 library(RColorBrewer) # for palette map
 library(htmltools) # for HTLMescape in popups
+library(ggplot2) # for plotting
 
 ################################################
 # 3. Load data and functions
@@ -139,12 +141,13 @@ ui <- navbarPage( # page with tabs to navigate to different pages
                     # A.3. Time series
                     # ------------------------------
                     tabPanel("Timeseries",
-                             plotOutput("plot1")),
+                             plotOutput("times_series_plot")),
                     # ------------------------------
                     # A.3. Ordination
                     # ------------------------------
+                    # https://jonlefcheck.net/2012/10/24/nmds-tutorial-in-r/
                     tabPanel("NMDS",
-                             plotOutput("plot2"))
+                             plotOutput("NMDS_plot"))
         )
       )
     )
@@ -437,6 +440,19 @@ server <- function(input, output, session) {
         removeControl(layerId = "Legend") %>%
         clearGroup(group = "Complete markers") %>%
         clearGroup(group = "Incomplete markers")
+    }
+  })
+  #########################
+  # Render time series plot
+  #########################
+  output$times_series_plot <- renderPlot({
+    my_subset <- transformed_subset()
+    if(nrow(my_subset) > 0){
+      ggplot(my_subset, aes(x = Date, y = Value)) +
+        geom_point() +
+        geom_smooth(
+          method = "lm"
+        )
     }
   })
 }

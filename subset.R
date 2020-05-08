@@ -33,7 +33,7 @@ subset_data_type <- function(dataset, map_type){
   if(nrow(dataset) > 0){
     if(map_type == "pa"){
       my_subset <- dataset %>%
-        dplyr::select(StationID, Lat_DD, Lon_DD) %>%
+        dplyr::select(StationID, Lat_DD, Lon_DD, Date) %>%
         dplyr::distinct()
       if(nrow(my_subset) > 0){
         my_subset$Value <- 1
@@ -45,8 +45,8 @@ subset_data_type <- function(dataset, map_type){
         dplyr::filter(is_Quantitative == 1) %>%
         # Identify incomplete data points
         dplyr::mutate(is_incomplete = ifelse(incomplete_count, 1, 0)) %>%
-        dplyr::select(StationID, Density_nr_per_m2, Lat_DD, Lon_DD, is_incomplete) %>%
-        dplyr::group_by(StationID, Lat_DD, Lon_DD) %>%
+        dplyr::select(StationID, Density_nr_per_m2, Lat_DD, Lon_DD, is_incomplete, Date) %>%
+        dplyr::group_by(StationID, Date, Lat_DD, Lon_DD) %>%
         # Sum densities for this station
         dplyr::summarise(
           Value = sum(Density_nr_per_m2, na.rm = T),
@@ -59,8 +59,8 @@ subset_data_type <- function(dataset, map_type){
         dplyr::filter(is_Quantitative == 1) %>%
         # Identify incomplete data points
         dplyr::mutate(is_incomplete = ifelse(incomplete_biomass, 1, 0)) %>%
-        dplyr::select(StationID, Biomass_g_per_m2, Lat_DD, Lon_DD, is_incomplete) %>%
-        dplyr::group_by(StationID, Lat_DD, Lon_DD) %>%
+        dplyr::select(StationID, Biomass_g_per_m2, Lat_DD, Lon_DD, is_incomplete, Date) %>%
+        dplyr::group_by(StationID, Date, Lat_DD, Lon_DD) %>%
         # Sum biomasses for this station
         dplyr::summarise(
           Value = sum(Biomass_g_per_m2, na.rm = T),
