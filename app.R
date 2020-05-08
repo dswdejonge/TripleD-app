@@ -237,6 +237,16 @@ server <- function(input, output, session) {
       subset_data_type(., map_type = input$map_type)
   })
   
+  get_map_title <- reactive({
+    if(input$map_type == "pa"){
+      HTML("<p>Presence - Absence</p>")
+    }else if(input$map_type == "dens"){
+      HTML("<p>Density (count m<sup>-2</sup>)</p>")  
+    }else if(input$map_type == "biom"){
+      HTML("<p>Biomass (g AFDW m<sup>-2</sup>)</p>") 
+    }
+  })
+  
   # -----------------------------------------------
   # Render base map
   # -----------------------------------------------
@@ -309,19 +319,38 @@ server <- function(input, output, session) {
       )
   })
   
+  # -----------------------------------------------
+  # Render and update layer with data markers
+  # -----------------------------------------------
+  observe({
+    # Image as legend:
+    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Sampled station, filtered taxon not found.<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data for filtered taxon.<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Incomplete data for filtered taxon."
+    map_title <- get_map_title()
+    # Subset data
+    my_subset <- filter_on_taxonomy()
+    if(nrow(my_subset) > 0){
+      my_pal <- colorNumeric(
+        palette = RColorBrewer::brewer.pal(11, "Spectral"), # Spectral palette
+        domain = c(
+          min(my_subset$Value, na.rm = T), # Minimum range
+          max(my_subset$Value, na.rm = T)), # Maximum range
+        reverse = T # Use the scale in reverse (blue is low, red is high)
+      )
+    }
+  
+    # Update layer with proxy
+    leafletProxy("mymap") %>%
+      removeControl(layerId = "Legend") %>%
+      addLegend(
+        layerId = "Legend",
+        "bottomright",
+        pal = my_pal,
+        values = my_subset$Value,
+        title = map_title,
+        opacity = 1)
+  })
+  
   #output$mymap <- renderLeaflet({
-    
-    #my_subset <- my_stations %>%
-    #  subset_taxon(., 
-    #               taxonomic_level = input$taxonomic_level,
-    #               taxon = input$taxon) %>%
-    #  subset_data_type(., map_type = input$map_type)
-    #my_subset <- filter_on_taxonomy()
-    
-    # Import marker legend images
-    # Get station markers
-    #station_marker <- makeIcon(iconUrl = "Station.png")
-    #html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Sampled station, filtered taxon not found.<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data for filtered taxon.<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Incomplete data for filtered taxon."
     # Create map
     #create_map(
     #  my_subset = my_subset, 
