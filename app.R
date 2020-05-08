@@ -94,7 +94,8 @@ ui <- navbarPage( # page with tabs to navigate to different pages
         # --------------------------------------------------------
         dateRangeInput(
           "dates_input",
-          label = p("Show data within time range:"),
+          label = p(paste0("Display data from time range. (Available dates: ",
+                           min(database$Date)," to ",max(database$Date),"):")),
           start = min(database$Date),
           end = max(database$Date),
           min = min(database$Date),
