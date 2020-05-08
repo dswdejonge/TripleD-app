@@ -67,23 +67,6 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           label = p("Also show incomplete data points (underestimations)"),
           value = TRUE
         ),
-        h3("Additional map layers:"),
-        # --------------------------------------------------------
-        # Checkbox: Show bathymetric data?
-        # --------------------------------------------------------
-        checkboxInput(
-          "show_bathy",
-          label = p("Show bathymetry"),
-          value = FALSE
-        ),
-        # --------------------------------------------------------
-        # Checkbox: Show regions of interest?
-        # --------------------------------------------------------
-        checkboxInput(
-          "show_roi",
-          label = p("Show regions of interest"),
-          value = FALSE
-        ),
         h3("Filter data:"),
         # --------------------------------------------------------
         # Select: Taxonomic level and taxon
