@@ -66,6 +66,11 @@ ui <- navbarPage( # page with tabs to navigate to different pages
         checkboxInput(
           "show_incomplete_data",
           label = p("Also show incomplete data points (underestimations)"),
+          value = TRUE
+        ),
+        checkboxInput(
+          "log_transform",
+          label = p("Log-transform data"),
           value = FALSE
         ),
         h3("Filter data:"),
@@ -304,12 +309,26 @@ server <- function(input, output, session) {
       subset_data_type(., map_type = input$map_type)
   })
   
+  transformed_subset <- reactive({
+    if(input$log_transform){
+      my_subset <- filter_on_taxonomy()
+      if(nrow(my_subset) > 0){
+        dplyr::mutate(my_subset, Value = log(Value))
+      }else(
+        my_subset
+      )
+    }else{
+      filter_on_taxonomy()
+    }
+  })
+  
   # -----------------------------------------------
   # Render and update data marker points and legend
   # -----------------------------------------------
   observe({
     # New subset
-    my_subset <- filter_on_taxonomy()
+    #my_subset <- filter_on_taxonomy()
+    my_subset <- transformed_subset()
     # Remove all markers and legend
     proxy <- leafletProxy("mymap") %>%
       removeControl(layerId = "Legend") %>%
