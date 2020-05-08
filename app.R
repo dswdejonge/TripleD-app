@@ -199,15 +199,23 @@ server <- function(input, output, session) {
   # Render notifications about data
   # -----------------------------------------------
   get_notification_text <- reactive({
-    paste("Notifications:",input$taxonomic_level,input$taxon, sep = " ")
+    default <- "Notifications: Polychaetes cannot be studied quantitatively with TripleD data!"
+    data_filter <- paste("Showing data of:",input$taxonomic_level,input$taxon,".",sep = " ")
+    if(input$show_incomplete_data){
+      incomplete_message <- "The data includes incomplete data points, i.e. these values are underestimations."
+    }else{
+      incomplete_message <- ""
+    }
+    if(input$log_transform){
+      log_message <- "Data is log transformed."
+    }else{
+      log_message <- ""
+    }
+    paste(default, data_filter, incomplete_message, log_message, sep = " ")
   })
+  
   output$notifications <- renderText(
     get_notification_text()
-    #if(input$show_incomplete_data){
-    #  "Notifications: The data includes incomplete data points, i.e. these values are underestimations."
-    #}else{
-    #  "Notifications: NA"
-    #}
   )
   
   # -----------------------------------------------
@@ -231,7 +239,8 @@ server <- function(input, output, session) {
       addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
       addScaleBar(position = "topright") %>%
       addSimpleGraticule(
-        interval = 2,
+        group = "Graticule",
+        interval = 0.5,
         showOriginLabel = T
       ) %>%
       setView(lng = 4.0, lat = 55, zoom = 6) %>%
