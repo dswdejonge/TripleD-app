@@ -262,8 +262,18 @@ server <- function(input, output, session) {
         weight = 2,
         opacity = 0.8,
         label = paste0(my_contours_df$depth, " m.")) %>%
+      # Add regions of interest layer
+      addPolygons(
+        group = "Regions of interest",
+        data = regions_of_interest,
+        popup = htmltools::htmlEscape(paste0(
+          regions_of_interest$name, 
+          " (", regions_of_interest$type,"). ",
+          "Area: ", regions_of_interest$area_ha, " ha."))
+      ) %>%
+      # Add layer control (show/hide layers)
       addLayersControl(
-        overlayGroups = "Bathymetry",
+        overlayGroups = c("Bathymetry", "Regions of interest"),
         options = layersControlOptions(collapsed = FALSE)
       )
   })
@@ -300,18 +310,7 @@ server <- function(input, output, session) {
   })
   
   #output$mymap <- renderLeaflet({
-    # Get all station points (black markers)
-    #my_stations <- subset_environment(
-    #  dataset = database,
-    #  dates_input = input$dates_input,
-    #  cruise_id = input$cruise_id,
-    #  depth_range = input$depth_range
-    #)
-    #plot_stations <- dplyr::select(filter_on_station_metadata(), 
-    #                               StationID, Station_name, Date, 
-    #                               Lat_DD, Lon_DD) %>%
-    #                 dplyr::distinct()
-    # Subset data based on bio info
+    
     #my_subset <- my_stations %>%
     #  subset_taxon(., 
     #               taxonomic_level = input$taxonomic_level,
@@ -337,10 +336,6 @@ server <- function(input, output, session) {
     #  show_roi = input$show_roi,
     #  regions_of_interest = regions_of_interest)
   #})
-
-  # ------------
-  # Statistics page
-  # ------------
 }
 
 # Run the application
