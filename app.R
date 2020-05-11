@@ -2,47 +2,66 @@
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
 #
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
 
+################################################
+# 1. Install the packages below if not present
+################################################
 # install.packages("shiny)
 # install.packages("leaflet")
 # install.packages("dplyr")
 # install.packages("RColorBrewer")
 # install.packages("htmltools")
+# install.packages("ggplot2")
+
+################################################
+# 2. Load the package below
+################################################
 library(shiny)
 library(leaflet) # for interactive map
 library(dplyr) # for data manipulation
 library(RColorBrewer) # for palette map
 library(htmltools) # for HTLMescape in popups
+library(ggplot2) # for plotting
 
-# --------------
-# Load Database
-# --------------
-load("data/database.rda")
+################################################
+# 3. Load data and functions
+################################################
+if("database.rda" %in% list.files("data")){
+  load("data/database.rda")
+  preview_warning <- FALSE
+}else{
+  source("preview_database.R")
+  database <- preview_database()
+  preview_warning <- TRUE
+}
 load("data/contours.rda")
 load("data/regions_of_interest.rda")
-source("map.R")
+#source("map.R")
+source("functions.R")
 source("subset.R")
 
-# ---------------
-# User interface
-# ---------------
+################################################
+# 4. User interface
+################################################
 ui <- navbarPage( # page with tabs to navigate to different pages
   "NIOZ TripleD Data",
-
-  # ------------------------------------
-  # Page with interactive North Sea map
-  # ------------------------------------
+ 
+   # -----------------------
+   # A. Data exploration
+  # -----------------------
   tabPanel(
-    "Map",
+    "Data exploration",
     sidebarLayout(
+      # --------------------
+      # A.1. Subset data
+      # --------------------
       sidebarPanel(
+        # --------------------------------------------------------
+        # Radiobuttons: Presence-absence, density, or biomass data
+        # --------------------------------------------------------
         radioButtons(
           "map_type",
-          label = h3("Map type:"),
+          label = h3("Data type:"),
           choiceNames = list(
             HTML("<p>Presence - Absence</p>"),
             HTML("<p>Density (count m<sup>-2</sup>)</p>"),
@@ -50,23 +69,23 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           ),
           choiceValues = list("pa","dens","biom"),
           selected = "pa"),
+        # --------------------------------------------------------
+        # Checkbox: With or without incomplete data?
+        # --------------------------------------------------------
         checkboxInput(
           "show_incomplete_data",
           label = p("Also show incomplete data points (underestimations)"),
           value = TRUE
         ),
-        h3("Additional layers:"),
         checkboxInput(
-          "show_bathy",
-          label = p("Show bathymetry"),
-          value = FALSE
-        ),
-        checkboxInput(
-          "show_roi",
-          label = p("Show regions of interest"),
+          "log_transform",
+          label = p("Log10-transform data"),
           value = FALSE
         ),
         h3("Filter data:"),
+        # --------------------------------------------------------
+        # Select: Taxonomic level and taxon
+        # --------------------------------------------------------
         selectInput(
           "taxonomic_level",
           label = p("Select a taxonomic level:"),
@@ -76,17 +95,24 @@ ui <- navbarPage( # page with tabs to navigate to different pages
         selectInput(
           "taxon",
           label = p("Select a taxon:"),
-          choices = NULL,
+          choices = as.list(NA),
           selected = 1
         ),
+        # --------------------------------------------------------
+        # Select: Date range
+        # --------------------------------------------------------
         dateRangeInput(
           "dates_input",
-          label = p("Show data within time range:"),
+          label = p(paste0("Display data from time range. (Available dates: ",
+                           min(database$Date)," to ",max(database$Date),"):")),
           start = min(database$Date),
           end = max(database$Date),
           min = min(database$Date),
           max = max(database$Date)
         ),
+        # --------------------------------------------------------
+        # Select: Depth range
+        # --------------------------------------------------------
         sliderInput(
           "depth_range",
           label = p("Show data within depth range:"),
@@ -99,6 +125,9 @@ ui <- navbarPage( # page with tabs to navigate to different pages
           round = TRUE,
           dragRange = TRUE
         ),
+        # --------------------------------------------------------
+        # Select: CruiseID
+        # --------------------------------------------------------
         selectInput(
           "cruise_id",
           label = p("Select a CruiseID:"),
@@ -107,113 +136,360 @@ ui <- navbarPage( # page with tabs to navigate to different pages
         )
       ),
       mainPanel(
-        textOutput("warnings"),
-        tags$head(tags$style("#warnings{color: red}")),
-        leafletOutput("mymap", height = "800px")
+        textOutput("preview_message"),
+        tags$head(tags$style("#preview_message{color: red}")),
+        textOutput("notifications"),
+        tags$head(tags$style("#notifications{color: blue}")),
+        tabsetPanel(type = "tabs",
+                    # ------------------------------
+                    # A.2. Interactive North Sea map
+                    # ------------------------------
+                    tabPanel("Map",
+                             leafletOutput("mymap", height = "800px")),
+                    # ------------------------------
+                    # A.3. Time series
+                    # ------------------------------
+                    tabPanel("Timeseries",
+                             plotOutput("times_series_plot"),
+                             selectInput(
+                               "smooth_method",
+                               label = p("Smoothing method:"),
+                               choices = list(Linear = "lm", Loess = "loess"),
+                               selected = 1
+                             )),
+                    # ------------------------------
+                    # A.3. Ordination
+                    # ------------------------------
+                    # https://jonlefcheck.net/2012/10/24/nmds-tutorial-in-r/
+                    tabPanel("NMDS",
+                             plotOutput("NMDS_plot"))
+        )
       )
     )
   ),
 
-  # ------------------------------------
-  # Page with database statistics
-  # ------------------------------------
-  tabPanel(
-    "Stats",
-
-    h1("Factsheet"),
-    p(paste0("This database contains ",dim(database)[1]," entries, collected over
-             ",length(unique(database$StationID))," sample stations,
-             during ",length(unique(database$CruiseID))," cruises.")),
-    p(paste0("The oldest sample was taken on ",min(database$Date),
-             " and the most recent sample was taken on ",max(database$Date),".")),
-    #p(paste0("Total suface area that has been sampled with the TripleD is ",
-    #         sum(stations_final$Sample_area_m2), "m2 and the total volume of sediment
-    #         sampled is ", sum(stations_final$Sample_volume_m3), "m3.")),
-    #p(paste0("In total ", sum(as.integer(database$Count)), " specimens have been counted from ",
-    #         length(unique(database$valid_name))," taxa.")),
-    hr()
-    ),
-
   # -----------
-  # About page
+  # B. About page
   # -----------
   tabPanel("About",
-           p("This interactive page is created by Danielle de Jonge."),
-           img(src = "Diagram_TripleD.png", height = 400))
+           h3("This interactive page is created by Danielle de Jonge."),
+           img(src = "TripleD_2011.jpg", height = 400),
+           h1("Factsheet"),
+           p(paste0("This database contains ",dim(database)[1]," entries, collected over
+                    ",length(unique(database$StationID))," sample stations,
+                    during ",length(unique(database$CruiseID))," cruises.")),
+           p(paste0("The oldest sample was taken on ",min(database$Date),
+                    " and the most recent sample was taken on ",max(database$Date),"."))
+  )
 )
 
-# ---------------------------------------
-# Server, i..e R-code that renders output
-# ---------------------------------------
+
+
+
+################################################
+# 5. Server, i.e. R-code that renders output
+################################################
 server <- function(input, output, session) {
 
-  # --------------
-  # North Sea map
-  # --------------
+  # -----------------------------------------------
   # Update selection box based on taxonomic level
-  observeEvent(input$taxonomic_level,{
+  # -----------------------------------------------
+  get_taxon_choices <- reactive({
     if(input$taxonomic_level == "all_data"){
-      my_choices <- as.list(NA)
+      as.list(NA)
     }else if(input$taxonomic_level == "species"){
       temp <- database %>%
         dplyr::filter(rank == "Species") %>%
         dplyr::pull(valid_name)
-      my_choices <- as.list(sort(unique(temp)))
+      as.list(sort(unique(temp)))
     }else{
-      my_choices <- as.list(sort(unique(dplyr::pull(database,input$taxonomic_level))))
+      as.list(sort(unique(dplyr::pull(database,input$taxonomic_level))))
     }
+  })
+   observe({
     updateSelectInput(
       session,
       inputId = "taxon",
-      choices = my_choices
+      choices = get_taxon_choices()
     )
   })
   
-  # Create map
-  output$warnings <- renderText(
+  # -----------------------------------------------
+  # Render notifications about data
+  # -----------------------------------------------
+   if(preview_warning){
+     output$preview_message <- renderText(
+       "You are using random generated preview data to test the app!"
+     )
+   }
+  
+   get_notification_text <- reactive({
+    default <- "Notifications: Polychaetes cannot be studied quantitatively with TripleD data!"
+    data_filter <- paste("Showing data of:",input$taxonomic_level,input$taxon,".",sep = " ")
     if(input$show_incomplete_data){
-      "Notifications: The map also shows incomplete data points, i.e. for some specimens in the filtered taxon no density or biomass value could be determined and the corresponding values are an underestimation."
+      incomplete_message <- "The data includes incomplete data points, i.e. these values are underestimations."
     }else{
-      "Notifications: NA"
+      incomplete_message <- ""
     }
+    if(input$log_transform){
+      log_message <- "Data is Log10 transformed."
+    }else{
+      log_message <- ""
+    }
+    paste(default, data_filter, incomplete_message, log_message, sep = " ")
+  })
+  
+  output$notifications <- renderText(
+    get_notification_text()
   )
+  
+  # -----------------------------------------------
+  # Render base map
+  # -----------------------------------------------
   output$mymap <- renderLeaflet({
-    # Get all station points (black markers)
-    my_stations <- subset_environment(
+    # Get palette for bathymetry
+    bathy_pal <- colorNumeric(
+      palette = RColorBrewer::brewer.pal(9, "Blues"),
+      domain = c(
+        min(my_contours_df$depth, na.rm = T), # Minimum range
+        max(my_contours_df$depth, na.rm = T)), # Maximum range
+      reverse = F # Use the scale in reverse (dark blue is deeper)
+    )
+
+    # Make legend image
+    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Stations<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Underestimations"
+
+    # Build map
+    leaflet() %>%
+      addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
+      addScaleBar(position = "topright") %>%
+      addSimpleGraticule(
+        group = "Graticule",
+        interval = 0.5,
+        showOriginLabel = T
+      ) %>%
+      setView(lng = 4.0, lat = 55, zoom = 6) %>%
+      # Add bathymetry layer
+      addPolylines(
+        group = "Bathymetry",
+        data = my_contours_df, # SpatialLinesDataFrame object from sp package
+        color = bathy_pal(my_contours_df$depth),
+        weight = 2,
+        opacity = 0.8,
+        label = paste0(my_contours_df$depth, " m.")) %>%
+      # Add regions of interest layer
+      addPolygons(
+        group = "Regions of interest",
+        data = regions_of_interest,
+        popup = htmltools::htmlEscape(paste0(
+          regions_of_interest$name,
+          " (", regions_of_interest$type,"). ",
+          "Area: ", regions_of_interest$area_ha, " ha."))
+      ) %>%
+      # Add layer control (show/hide layers)
+      addLayersControl(
+        overlayGroups = c("Bathymetry", "Regions of interest", "Graticule"),
+        options = layersControlOptions(collapsed = FALSE)
+      ) %>%
+      addControl(html = html_legend, position = "bottomleft")
+  })
+  
+  # -----------------------------------------------
+  # Reactive functions to filter data
+  # # -----------------------------------------------
+  filter_on_station_metadata <- reactive({
+    subset_environment(
       dataset = database,
       dates_input = input$dates_input,
       cruise_id = input$cruise_id,
       depth_range = input$depth_range
     )
-    plot_stations <- dplyr::select(my_stations, 
-                                   StationID, Station_name, Date, 
-                                   Lat_DD, Lon_DD) %>%
-                     dplyr::distinct()
-    # Subset data based on bio info
-    my_subset <- my_stations %>%
-      subset_taxon(., 
+  })
+  # -----------------------------------------------
+  # Render and update layer with station markers
+  # -----------------------------------------------
+  observe({
+    station_marker <- makeIcon(iconUrl = "Station.png",iconWidth = 12, iconHeight = 12,iconAnchorX = 6, iconAnchorY = 6)
+    mysubset <- filter_on_station_metadata()
+    stations_to_plot <- dplyr::select(mysubset,StationID, Station_name, Date,Lat_DD, Lon_DD) %>% dplyr::distinct()
+    leafletProxy("mymap") %>%
+      clearGroup(group = "Station markers") %>%
+      addMarkers(
+        group = "Station markers",
+        lng = stations_to_plot$Lon_DD,
+        lat = stations_to_plot$Lat_DD,
+        icon = station_marker,
+        popup = htmltools::htmlEscape(
+          paste0("StationID: ",stations_to_plot$StationID,
+                 " Station name: ",stations_to_plot$Station_name,
+                 " Date: ", stations_to_plot$Date))
+      )
+  })
+  
+  # -----------------------------------------------
+  # Reactive functions biodata filtering
+  # -----------------------------------------------
+  get_map_title <- reactive({
+    if(input$map_type == "pa"){
+      HTML("<p>Presence - Absence</p>")
+    }else if(input$map_type == "dens"){
+      if(input$log_transform){
+        HTML("<p>Density [log10(count m<sup>-2</sup>)]</p>")
+      }else{
+        HTML("<p>Density [count m<sup>-2</sup>]</p>")
+      }
+    }else if(input$map_type == "biom"){
+      if(input$log_transform){
+        HTML("<p>Biomass [log10(g AFDW m<sup>-2</sup>)]</p>")
+      }else{
+        HTML("<p>Biomass [g AFDW m<sup>-2</sup>]</p>")
+      }
+    }
+  })
+  
+  filter_on_taxonomy <- reactive({
+    filter_on_station_metadata() %>%
+      subset_taxon(.,
                    taxonomic_level = input$taxonomic_level,
                    taxon = input$taxon) %>%
       subset_data_type(., map_type = input$map_type)
-    # Import marker legend images
-    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Sampled station, filtered taxon not found.<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data for filtered taxon.<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Incomplete data for filtered taxon."
-    # Create map
-    create_map(
-      my_subset = my_subset, 
-      all_stations = plot_stations,
-      my_pal = my_pal,
-      map_type = input$map_type,
-      show_incomplete_data = input$show_incomplete_data,
-      html_legend = html_legend,
-      show_bathy = input$show_bathy,
-      my_contours_df = my_contours_df,
-      show_roi = input$show_roi,
-      regions_of_interest = regions_of_interest)
   })
-
-  # ------------
-  # Statistics page
-  # ------------
+  
+  transformed_subset <- reactive({
+    if(input$log_transform){
+      my_subset <- filter_on_taxonomy()
+      if(nrow(my_subset) > 0){
+        dplyr::mutate(my_subset, Value = log10(Value))
+      }else(
+        my_subset
+      )
+    }else{
+      filter_on_taxonomy()
+    }
+  })
+  
+  # -----------------------------------------------
+  # Render and update data marker points and legend
+  # -----------------------------------------------
+  observe({
+    # New subset
+    #my_subset <- filter_on_taxonomy()
+    my_subset <- transformed_subset()
+    # Remove all markers and legend
+    proxy <- leafletProxy("mymap") %>%
+      removeControl(layerId = "Legend") %>%
+      clearGroup(group = "Complete markers") %>%
+      clearGroup(group = "Incomplete markers")
+    # Only add new data if data in subset
+    if(nrow(my_subset) > 0){
+      complete_points <- my_subset[!my_subset$do_not_include,]
+      incomplete_points <- my_subset[my_subset$do_not_include,]
+      # When all data incl. incomplete is shown,
+      # use a palette based on all data and
+      # add complete and incomplete markers separately
+      if(input$show_incomplete_data){
+        my_pal <- get_palette(my_subset)
+        proxy <- proxy %>%
+          addLegend(
+            layerId = "Legend",
+            "bottomright",
+            pal = my_pal,
+            values = my_subset$Value,
+            title = get_map_title(),
+            opacity = 1)
+        # Add markers if data exists
+        if(nrow(complete_points) > 0){
+          proxy <- proxy %>%
+            addCircleMarkers(
+              group = "Complete markers",
+              lng = complete_points$Lon_DD,
+              lat = complete_points$Lat_DD,
+              color = my_pal(complete_points$Value),
+              radius = 13,
+              fillOpacity = 1.0,
+              stroke = FALSE,
+              popup = htmltools::htmlEscape(paste0("Value: ",complete_points$Value))
+            )
+        }
+        # Add markers if data exists
+        if(nrow(incomplete_points) > 0){
+          proxy <- proxy %>%
+            addCircleMarkers(
+              group = "Incomplete markers",
+              lng = incomplete_points$Lon_DD,
+              lat = incomplete_points$Lat_DD,
+              radius = 13,
+              fillColor = my_pal(incomplete_points$Value),
+              fillOpacity = 0.3,
+              stroke = TRUE,
+              color = my_pal(incomplete_points$Value),
+              opacity = 1.0,
+              popup = htmltools::htmlEscape(paste0("Value: ",incomplete_points$Value))
+            )
+        }
+      }else{
+      # If only complete points are shown,
+      # use a palette based on the complete data and
+      # add only complete markers
+        if(nrow(complete_points) > 0){
+          my_pal <- get_palette(complete_points)
+          proxy <- proxy %>%
+            addLegend(
+              layerId = "Legend",
+              "bottomright",
+              pal = my_pal,
+              values = complete_points$Value,
+              title = get_map_title(),
+              opacity = 1) %>%
+            addCircleMarkers(
+              group = "Complete markers",
+              lng = complete_points$Lon_DD,
+              lat = complete_points$Lat_DD,
+              color = my_pal(complete_points$Value),
+              radius = 13,
+              fillOpacity = 1.0,
+              stroke = FALSE,
+              popup = htmltools::htmlEscape(paste0("Value: ",complete_points$Value))
+            )
+        }
+      }
+      # Return updated proxy
+      proxy
+    }else{
+    # If there is no data in subset
+      leafletProxy("mymap") %>%
+        removeControl(layerId = "Legend") %>%
+        clearGroup(group = "Complete markers") %>%
+        clearGroup(group = "Incomplete markers")
+    }
+  })
+  #########################
+  # Render time series plot
+  #########################
+  output$times_series_plot <- renderPlot({
+    my_subset <- transformed_subset()
+    if(nrow(my_subset) > 0){
+      ggplot(my_subset, aes(x = Date, y = Value)) +
+        geom_point() +
+        geom_smooth(
+          method = input$smooth_method #"lm"
+        )
+    }
+  })
+  
+  #########################
+  # Render NMDS plot
+  #########################
+  #output$NMDS_plot <- renderPlot({
+  #  my_subset <- transformed_subset()
+  #  community_matrix <- tidyr::pivot_wider(
+  #    data = my_subset,
+  #    id_cols = StationID,
+  #    names_from = taxon,
+  #    values_from = Value,
+  #    values_fill = list(Value = 0)
+  #  )
+  #})
 }
 
 # Run the application
