@@ -36,7 +36,6 @@ if("database.rda" %in% list.files("data")){
 }
 load("data/contours.rda")
 load("data/regions_of_interest.rda")
-#source("map.R")
 source("functions.R")
 source("subset.R")
 
@@ -257,7 +256,7 @@ server <- function(input, output, session) {
     )
 
     # Make legend image
-    html_legend <- "<img src='Station.png'style='width:30px;height:30px;'>Stations<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Underestimations"
+    html_legend <- "<img src='Station_legend.png'style='width:30px;height:30px;'>Stations<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Underestimations"
 
     # Build map
     leaflet() %>%
