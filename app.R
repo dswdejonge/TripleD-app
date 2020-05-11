@@ -26,7 +26,14 @@ library(ggplot2) # for plotting
 ################################################
 # 3. Load data and functions
 ################################################
-load("data/database.rda")
+if("database.rda" %in% list.files("data")){
+  load("data/database.rda")
+  preview_warning <- FALSE
+}else{
+  source("preview_database.R")
+  database <- preview_database()
+  preview_warning <- TRUE
+}
 load("data/contours.rda")
 load("data/regions_of_interest.rda")
 #source("map.R")
@@ -129,6 +136,8 @@ ui <- navbarPage( # page with tabs to navigate to different pages
         )
       ),
       mainPanel(
+        textOutput("preview_message"),
+        tags$head(tags$style("#preview_message{color: red}")),
         textOutput("notifications"),
         tags$head(tags$style("#notifications{color: blue}")),
         tabsetPanel(type = "tabs",
@@ -141,7 +150,13 @@ ui <- navbarPage( # page with tabs to navigate to different pages
                     # A.3. Time series
                     # ------------------------------
                     tabPanel("Timeseries",
-                             plotOutput("times_series_plot")),
+                             plotOutput("times_series_plot"),
+                             selectInput(
+                               "smooth_method",
+                               label = p("Smoothing method:"),
+                               choices = list(Linear = "lm", Loess = "loess"),
+                               selected = 1
+                             )),
                     # ------------------------------
                     # A.3. Ordination
                     # ------------------------------
@@ -202,7 +217,13 @@ server <- function(input, output, session) {
   # -----------------------------------------------
   # Render notifications about data
   # -----------------------------------------------
-  get_notification_text <- reactive({
+   if(preview_warning){
+     output$preview_message <- renderText(
+       "You are using random generated preview data to test the app!"
+     )
+   }
+  
+   get_notification_text <- reactive({
     default <- "Notifications: Polychaetes cannot be studied quantitatively with TripleD data!"
     data_filter <- paste("Showing data of:",input$taxonomic_level,input$taxon,".",sep = " ")
     if(input$show_incomplete_data){
@@ -451,10 +472,24 @@ server <- function(input, output, session) {
       ggplot(my_subset, aes(x = Date, y = Value)) +
         geom_point() +
         geom_smooth(
-          method = "lm"
+          method = input$smooth_method #"lm"
         )
     }
   })
+  
+  #########################
+  # Render NMDS plot
+  #########################
+  #output$NMDS_plot <- renderPlot({
+  #  my_subset <- transformed_subset()
+  #  community_matrix <- tidyr::pivot_wider(
+  #    data = my_subset,
+  #    id_cols = StationID,
+  #    names_from = taxon,
+  #    values_from = Value,
+  #    values_fill = list(Value = 0)
+  #  )
+  #})
 }
 
 # Run the application
