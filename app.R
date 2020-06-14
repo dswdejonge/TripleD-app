@@ -38,6 +38,7 @@ load("data/contours.rda")
 load("data/regions_of_interest.rda")
 source("functions.R")
 source("subset.R")
+source("about_text.R")
 
 ################################################
 # 4. User interface
@@ -144,7 +145,7 @@ ui <- navbarPage( # page with tabs to navigate to different pages
                     # A.2. Interactive North Sea map
                     # ------------------------------
                     tabPanel("Map",
-                             leafletOutput("mymap", height = "800px")),
+                             leafletOutput("mymap", height = "700px")), #800
                     # ------------------------------
                     # A.3. Time series
                     # ------------------------------
@@ -171,9 +172,15 @@ ui <- navbarPage( # page with tabs to navigate to different pages
   # B. About page
   # -----------
   tabPanel("About",
-           h3("This interactive page is created by Danielle de Jonge."),
+           h3("This Shiny app is created by Daniëlle de Jonge"),
+           h4("May 2020"),
+           h1("The TripleD"),
+           p(TripleD_text()),
            img(src = "TripleD_2011.jpg", height = 400),
-           h1("Factsheet"),
+           p("Model of the TripleD in 2011. Image provided by Rob Witbaard (NIOZ)."),
+           h1("The TripleD package"),
+           p(package_text()),
+           h1("Database dashboard"),
            p(paste0("This database contains ",dim(database)[1]," entries, collected over
                     ",length(unique(database$StationID))," sample stations,
                     during ",length(unique(database$CruiseID))," cruises.")),
