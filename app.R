@@ -212,7 +212,7 @@ server <- function(input, output, session) {
       as.list(sort(unique(dplyr::pull(database,input$taxonomic_level))))
     }
   })
-   observe({
+  observe({
     updateSelectInput(
       session,
       inputId = "taxon",
@@ -262,10 +262,12 @@ server <- function(input, output, session) {
       reverse = F # Use the scale in reverse (dark blue is deeper)
     )
 
-    # Make legend image
+    # Make legend and station marker image
     html_legend <- "<img src='Station_legend.png'style='width:30px;height:30px;'>Stations<br/><img src='Complete.png'style='width:30px;height:30px;'>Complete data<br/><img src='Incomplete.png'style='width:30px;height:30px;'>Underestimations"
-
+    station_marker <- makeIcon(iconUrl = "Station.png",iconWidth = 12, iconHeight = 12,iconAnchorX = 6, iconAnchorY = 6)
+    
     # Build map
+    stations_to_plot <- dplyr::select(database,StationID, Station_name, Date,Lat_DD, Lon_DD) %>% dplyr::distinct()
     leaflet() %>%
       addProviderTiles(providers$Esri.OceanBasemap, group = "Basemap") %>%
       addScaleBar(position = "topright") %>%
@@ -297,7 +299,19 @@ server <- function(input, output, session) {
         overlayGroups = c("Bathymetry", "Regions of interest", "Graticule"),
         options = layersControlOptions(collapsed = FALSE)
       ) %>%
-      addControl(html = html_legend, position = "bottomleft")
+      addControl(html = html_legend, position = "bottomleft") %>%
+      addMarkers(
+        group = "Station markers",
+        lng = stations_to_plot$Lon_DD,
+        lat = stations_to_plot$Lat_DD,
+        icon = station_marker,
+        popup = htmltools::htmlEscape(
+          paste0("StationID: ",stations_to_plot$StationID,
+                 " Station name: ",stations_to_plot$Station_name,
+                 " Date: ", stations_to_plot$Date,
+                 " Lat: ", stations_to_plot$Lat_DD,
+                 " Lon: ", stations_to_plot$Lon_DD))
+      )
   })
   
   # -----------------------------------------------
@@ -311,12 +325,13 @@ server <- function(input, output, session) {
       depth_range = input$depth_range
     )
   })
+  
   # -----------------------------------------------
   # Render and update layer with station markers
   # -----------------------------------------------
   observe({
-    station_marker <- makeIcon(iconUrl = "Station.png",iconWidth = 12, iconHeight = 12,iconAnchorX = 6, iconAnchorY = 6)
     mysubset <- filter_on_station_metadata()
+    station_marker <- makeIcon(iconUrl = "Station.png",iconWidth = 12, iconHeight = 12,iconAnchorX = 6, iconAnchorY = 6)
     stations_to_plot <- dplyr::select(mysubset,StationID, Station_name, Date,Lat_DD, Lon_DD) %>% dplyr::distinct()
     leafletProxy("mymap") %>%
       clearGroup(group = "Station markers") %>%
@@ -328,7 +343,9 @@ server <- function(input, output, session) {
         popup = htmltools::htmlEscape(
           paste0("StationID: ",stations_to_plot$StationID,
                  " Station name: ",stations_to_plot$Station_name,
-                 " Date: ", stations_to_plot$Date))
+                 " Date: ", stations_to_plot$Date,
+                 " Lat: ", stations_to_plot$Lat_DD,
+                 " Lon: ", stations_to_plot$Lon_DD))
       )
   })
   
@@ -362,7 +379,7 @@ server <- function(input, output, session) {
   })
   
   transformed_subset <- reactive({
-    if(input$log_transform){
+    if(input$log_transform & input$map_type != "pa"){
       my_subset <- filter_on_taxonomy()
       if(nrow(my_subset) > 0){
         dplyr::mutate(my_subset, Value = log10(Value))
@@ -379,7 +396,6 @@ server <- function(input, output, session) {
   # -----------------------------------------------
   observe({
     # New subset
-    #my_subset <- filter_on_taxonomy()
     my_subset <- transformed_subset()
     # Remove all markers and legend
     proxy <- leafletProxy("mymap") %>%
@@ -394,13 +410,23 @@ server <- function(input, output, session) {
       # use a palette based on all data and
       # add complete and incomplete markers separately
       if(input$show_incomplete_data){
-        my_pal <- get_palette(my_subset)
+        if(all(is.na(my_subset$Value))){
+          min_range <- 0
+          max_range <- 1
+        }else if(length(unique(my_subset$Value) == 1)){
+          min_range <- 0
+          max_range <- unique(my_subset$Value)
+        }else{
+          min_range <- min(my_subset$Value, na.rm = T)
+          max_range <- max(my_subset$Value, na.rm = T)
+        }
+        my_pal <- get_palette(min_range, max_range)
         proxy <- proxy %>%
           addLegend(
             layerId = "Legend",
             "bottomright",
             pal = my_pal,
-            values = my_subset$Value,
+            values = c(min_range, max_range), #my_subset$Value,
             title = get_map_title(),
             opacity = 1)
         # Add markers if data exists
@@ -438,13 +464,23 @@ server <- function(input, output, session) {
       # use a palette based on the complete data and
       # add only complete markers
         if(nrow(complete_points) > 0){
-          my_pal <- get_palette(complete_points)
+          if(all(is.na(complete_points$Value))){
+            min_range <- 0
+            max_range <- 1
+          }else if(length(unique(complete_points$Value) == 1)){
+            min_range <- 0
+            max_range <- unique(complete_points$Value)
+          }else{
+            min_range <- min(complete_points$Value, na.rm = T)
+            max_range <- max(complete_points$Value, na.rm = T)
+          }
+          my_pal <- get_palette(min_range, max_range)
           proxy <- proxy %>%
             addLegend(
               layerId = "Legend",
               "bottomright",
               pal = my_pal,
-              values = complete_points$Value,
+              values = c(min_range, max_range),#complete_points$Value,
               title = get_map_title(),
               opacity = 1) %>%
             addCircleMarkers(
@@ -469,19 +505,20 @@ server <- function(input, output, session) {
         clearGroup(group = "Incomplete markers")
     }
   })
+  
   #########################
   # Render time series plot
   #########################
-  output$times_series_plot <- renderPlot({
-    my_subset <- transformed_subset()
-    if(nrow(my_subset) > 0){
-      ggplot(my_subset, aes(x = Date, y = Value)) +
-        geom_point() +
-        geom_smooth(
-          method = input$smooth_method #"lm"
-        )
-    }
-  })
+  # output$times_series_plot <- renderPlot({
+  #   my_subset <- transformed_subset()
+  #   if(nrow(my_subset) > 0){
+  #     ggplot(my_subset, aes(x = Date, y = Value)) +
+  #       geom_point() +
+  #       geom_smooth(
+  #         method = input$smooth_method #"lm"
+  #       )
+  #   }
+  # })
   
   #########################
   # Render NMDS plot
