@@ -509,16 +509,16 @@ server <- function(input, output, session) {
   #########################
   # Render time series plot
   #########################
-  # output$times_series_plot <- renderPlot({
-  #   my_subset <- transformed_subset()
-  #   if(nrow(my_subset) > 0){
-  #     ggplot(my_subset, aes(x = Date, y = Value)) +
-  #       geom_point() +
-  #       geom_smooth(
-  #         method = input$smooth_method #"lm"
-  #       )
-  #   }
-  # })
+  output$times_series_plot <- renderPlot({
+    my_subset <- transformed_subset()
+    if(nrow(my_subset) > 0){
+      ggplot(my_subset, aes(x = Date, y = Value)) +
+        geom_point() +
+        geom_smooth(
+          method = input$smooth_method #"lm"
+        )
+    }
+  })
   
   #########################
   # Render NMDS plot
